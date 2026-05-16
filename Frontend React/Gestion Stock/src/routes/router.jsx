@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom'
+import { createHashRouter } from 'react-router-dom'
 import { AppShell } from './AppShell'
 import { RequireRole } from './RequireRole'
 import { AdminShell } from './AdminShell'
@@ -13,7 +13,7 @@ import { AdminUsuarios } from '../pages/admin/Usuarios'
 import { AdminHistorial } from '../pages/admin/Historial'
 import { AdminHistorialNuevo } from '../pages/admin/HistorialNuevo'
 
-export const router = createBrowserRouter([
+export const router = createHashRouter([
   {
     element: <AppShell />,
     children: [
