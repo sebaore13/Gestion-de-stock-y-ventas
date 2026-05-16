@@ -23,9 +23,11 @@ export function ProductRow({ product, className }) {
       </div>
 
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="text-sm font-semibold text-zinc-100 truncate">{product.name}</div>
-          <span className="text-xs font-mono text-zinc-400">{product.sku}</span>
+        <div className="min-w-0">
+          <div className="min-w-0 sm:flex sm:items-center sm:gap-2">
+            <div className="text-sm font-semibold text-zinc-100 truncate">{product.name}</div>
+            <span className="pt-0.5 sm:pt-0 text-xs font-mono text-zinc-400 truncate">{product.sku}</span>
+          </div>
         </div>
         <div className="pt-0.5 text-xs text-[var(--muted)]">
           {moneyARS(product.price)} · Min {product.min}

@@ -61,7 +61,7 @@ export function Dashboard() {
         <CardHeader>
           <div>
             <div className="text-sm font-semibold">Consultar precio</div>
-            <div className="text-xs text-[var(--muted)] pt-1">Busca por codigo. Ideal para mostrador.</div>
+            <div className="text-xs text-[var(--muted)] pt-1">Busca por codigo.</div>
           </div>
           <Badge variant="info">
             <span className="inline-flex items-center gap-2">
@@ -86,15 +86,15 @@ export function Dashboard() {
                 <div className="pt-2">
                   <Button variant="secondary" onClick={() => setCodigo('')} aria-label="Limpiar codigo">
                     <X size={16} />
-                    Limpiar
+                    Limpiar Busqueda
                   </Button>
                 </div>
               ) : null}
             </div>
 
-            <Link to="/inventario" className="block">
+            <Link to="/ventas" className="block">
               <Button variant="primary" className="w-full justify-center">
-                Ir a inventario <ArrowRight size={16} />
+                Ir a venta <ArrowRight size={16} />
               </Button>
             </Link>
           </div>
@@ -133,7 +133,7 @@ export function Dashboard() {
                 <div className="py-2 text-sm text-[var(--muted)]">No encontre un producto con ese codigo.</div>
               )
             ) : (
-              <div className="py-2 text-sm text-[var(--muted)]">Ingresa un codigo para ver precio y stock.</div>
+              <div className="py-2 text-sm text-[var(--muted)]">Ingresa un codigo o escribe el nombre para ver precio y stock.</div>
             )}
           </div>
         </CardBody>

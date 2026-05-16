@@ -20,9 +20,6 @@ export function SearchBar({ className, ...props }) {
         type="search"
         {...props}
       />
-      <span className="hidden sm:inline text-[10px] uppercase tracking-[0.18em] text-zinc-500 border border-zinc-800 rounded-lg px-2 py-1">
-        Ctrl K
-      </span>
     </label>
   )
 }
