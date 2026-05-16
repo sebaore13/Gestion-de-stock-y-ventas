@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   LayoutDashboard,
   Boxes,
   ShoppingCart,
   History,
+  Users,
   Settings,
   ChevronsLeft,
   ChevronsRight,
@@ -13,22 +14,33 @@ import {
 import { cn } from '../../design/cn'
 import { motionTokens } from '../../design/motion'
 import { SidebarItem } from '../molecules/SidebarItem'
+import { useAppStore } from '../../store/useAppStore'
 
-const NAV = [
+const NAV_VENDEDOR = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, to: '/', end: true },
   { key: 'inventario', label: 'Inventario', icon: Boxes, to: '/inventario' },
   { key: 'ventas', label: 'Ventas', icon: ShoppingCart, to: '/ventas' },
   { key: 'historial', label: 'Historial', icon: History, to: '/historial' },
-  { key: 'config', label: 'Configuracion', icon: Settings, to: '/config' },
+]
+
+const NAV_ADMIN = [
+  { key: 'admin', label: 'Dashboard', icon: LayoutDashboard, to: '/admin', end: true },
+  { key: 'admin-productos', label: 'Productos', icon: Boxes, to: '/admin/productos' },
+  { key: 'admin-usuarios', label: 'Usuarios', icon: Users, to: '/admin/usuarios' },
+  { key: 'admin-historial', label: 'Historial', icon: History, to: '/admin/historial' },
+  { key: 'admin-crear-historial', label: 'Crear historial', icon: History, to: '/admin/historial/nuevo' },
+  { key: 'admin-config', label: 'Configuracion', icon: Settings, to: '/admin/config' },
 ]
 
 export function Sidebar({
   brand = 'OreStock',
+  basePath = '',
   variant = 'fixed',
   open = false,
   onOpenChange,
 }) {
   const [collapsed, setCollapsed] = useState(false)
+  const rol = useAppStore((s) => s.getRolActivo())
 
   useEffect(() => {
     if (variant !== 'drawer') return
@@ -40,6 +52,13 @@ export function Sidebar({
   }, [open, onOpenChange, variant])
 
   const isDrawer = variant === 'drawer'
+
+  const nav = useMemo(() => {
+    const isAdminArea = basePath === '/admin'
+    if (isAdminArea) return NAV_ADMIN
+    // area vendedor: si es admin también puede ver este menu si entra a '/'
+    return NAV_VENDEDOR
+  }, [basePath])
 
   const aside = (
     <motion.aside
@@ -54,7 +73,7 @@ export function Sidebar({
     >
       <div className="h-full flex flex-col">
         <div className={cn('px-4 pt-5 pb-4 flex items-center gap-3', collapsed && 'justify-center')}>
-          <div className="h-10 w-10 rounded-2xl bg-[rgba(249,115,22,0.16)] border border-[rgba(249,115,22,0.25)] grid place-items-center">
+          <div className="h-10 w-10 rounded-2xl bg-[rgb(var(--primary-rgb)/0.16)] border border-[rgb(var(--primary-rgb)/0.25)] grid place-items-center">
             <span className="text-[var(--primary)] font-semibold">
               {(brand?.slice(0, 2) ?? 'OS').toUpperCase()}
             </span>
@@ -104,7 +123,13 @@ export function Sidebar({
             Menu
           </div>
           <div className="flex flex-col gap-1">
-            {NAV.map((item) => (
+            {nav
+              .filter((item) => {
+                // vendedor no ve admin config aunque navegue area vendedor.
+                if (item.key === 'admin-config') return rol === 'Administrador'
+                return true
+              })
+              .map((item) => (
               <SidebarItem
                 key={item.key}
                 icon={item.icon}

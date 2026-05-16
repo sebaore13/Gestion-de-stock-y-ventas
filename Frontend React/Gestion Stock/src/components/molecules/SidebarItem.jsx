@@ -16,7 +16,7 @@ export function SidebarItem({ icon: Icon, label, to, collapsed, end }) {
             'border transition',
             collapsed ? 'justify-center px-0' : '',
             isActive
-              ? 'bg-[rgba(249,115,22,0.10)] border-[rgba(249,115,22,0.20)]'
+              ? 'bg-[rgb(var(--primary-rgb)/0.10)] border-[rgb(var(--primary-rgb)/0.22)]'
               : 'border-transparent hover:bg-white/5 hover:border-white/5',
           )}
         >
@@ -24,7 +24,7 @@ export function SidebarItem({ icon: Icon, label, to, collapsed, end }) {
             className={cn(
               'h-9 w-9 rounded-xl grid place-items-center',
               isActive
-                ? 'bg-[rgba(249,115,22,0.18)] text-[var(--primary)]'
+                ? 'bg-[rgb(var(--primary-rgb)/0.18)] text-[var(--primary)]'
                 : 'bg-white/5 text-zinc-200',
             )}
           >

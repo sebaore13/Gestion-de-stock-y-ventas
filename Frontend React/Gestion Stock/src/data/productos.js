@@ -8,6 +8,7 @@ export const productos = [
     precio: 45990,
     estado: 'Disponible',
     minimo: 8,
+    fechaIngreso: new Date(Date.now() - 1000 * 60 * 60 * 24 * 12).toISOString(),
   },
   {
     id: 2,
@@ -18,6 +19,7 @@ export const productos = [
     precio: 12990,
     estado: 'Stock Bajo',
     minimo: 6,
+    fechaIngreso: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
   },
   {
     id: 3,
@@ -28,6 +30,7 @@ export const productos = [
     precio: 7490,
     estado: 'Disponible',
     minimo: 10,
+    fechaIngreso: new Date(Date.now() - 1000 * 60 * 60 * 24 * 21).toISOString(),
   },
   {
     id: 4,
@@ -38,6 +41,7 @@ export const productos = [
     precio: 28900,
     estado: 'Disponible',
     minimo: 10,
+    fechaIngreso: new Date(Date.now() - 1000 * 60 * 60 * 24 * 6).toISOString(),
   },
   {
     id: 5,
@@ -48,6 +52,7 @@ export const productos = [
     precio: 1800,
     estado: 'Disponible',
     minimo: 30,
+    fechaIngreso: new Date(Date.now() - 1000 * 60 * 60 * 24 * 38).toISOString(),
   },
   {
     id: 6,
@@ -58,6 +63,7 @@ export const productos = [
     precio: 15400,
     estado: 'Disponible',
     minimo: 8,
+    fechaIngreso: new Date(Date.now() - 1000 * 60 * 60 * 24 * 9).toISOString(),
   },
   {
     id: 7,
@@ -68,6 +74,7 @@ export const productos = [
     precio: 46800,
     estado: 'Stock Bajo',
     minimo: 6,
+    fechaIngreso: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(),
   },
   {
     id: 8,
@@ -78,5 +85,6 @@ export const productos = [
     precio: 320,
     estado: 'Disponible',
     minimo: 50,
+    fechaIngreso: new Date(Date.now() - 1000 * 60 * 60 * 24 * 18).toISOString(),
   },
 ]

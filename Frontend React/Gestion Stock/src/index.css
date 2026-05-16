@@ -8,8 +8,9 @@
   --border: #27272a;
   --text: #fafafa;
   --muted: #a1a1aa;
-  --primary: #f97316;
-  --secondary: #3b82f6;
+  --primary: #dc2626;
+  --primary-rgb: 220 38 38;
+  --secondary: #ffffff;
   --success: #22c55e;
   --danger: #ef4444;
 
@@ -49,9 +50,8 @@ body {
 
 body {
   margin: 0;
-  background: radial-gradient(1200px 800px at 15% 10%, rgba(59, 130, 246, 0.12), transparent 60%),
-    radial-gradient(900px 700px at 85% 20%, rgba(249, 115, 22, 0.10), transparent 55%),
-    var(--bg);
+  background: radial-gradient(1100px 760px at 18% 12%, rgba(220, 38, 38, 0.14), transparent 58%),
+    radial-gradient(900px 700px at 88% 20%, rgba(255, 255, 255, 0.06), transparent 56%), var(--bg);
   color: var(--text);
 }
 
@@ -61,12 +61,22 @@ a {
 }
 
 :focus-visible {
-  outline: 2px solid rgba(249, 115, 22, 0.65);
+  outline: 2px solid rgb(var(--primary-rgb) / 0.7);
   outline-offset: 2px;
 }
 
+/*
+  Our custom inputs/selects render their own focus ring on the outer container.
+  Prevent the browser outline on the inner control to avoid double borders.
+*/
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+}
+
 ::selection {
-  background: rgba(249, 115, 22, 0.25);
+  background: rgb(var(--primary-rgb) / 0.25);
 }
 
 /* App-level helper */

@@ -19,7 +19,7 @@ export function StatCard({ title, value, delta = 0, icon: Icon, accent = 'orange
         ? 'from-[rgba(34,197,94,0.55)] to-[rgba(34,197,94,0.10)]'
         : accent === 'red'
           ? 'from-[rgba(239,68,68,0.55)] to-[rgba(239,68,68,0.10)]'
-          : 'from-[rgba(249,115,22,0.60)] to-[rgba(249,115,22,0.10)]'
+          : 'from-[rgb(var(--primary-rgb)/0.60)] to-[rgb(var(--primary-rgb)/0.10)]'
 
   return (
     <motion.div

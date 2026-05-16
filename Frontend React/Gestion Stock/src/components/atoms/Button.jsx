@@ -37,7 +37,7 @@ export function Button({
       className={cn(
         'inline-flex items-center justify-center gap-2 rounded-xl font-medium select-none',
         'transition-colors duration-200',
-        'shadow-[0_0_0_0_rgba(0,0,0,0)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgba(249,115,22,0.65)]',
+        'shadow-[0_0_0_0_rgba(0,0,0,0)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--primary-rgb)/0.7)]',
         'disabled:opacity-50 disabled:pointer-events-none',
         sizes[size],
         variants[variant],

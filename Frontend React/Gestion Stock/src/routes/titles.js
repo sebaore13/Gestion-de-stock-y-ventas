@@ -10,6 +10,18 @@ export function titleForPath(pathname) {
       return 'Historial'
     case '/config':
       return 'Configuracion'
+    case '/admin':
+      return 'Admin · Dashboard'
+    case '/admin/productos':
+      return 'Admin · Productos'
+    case '/admin/usuarios':
+      return 'Admin · Usuarios'
+    case '/admin/historial':
+      return 'Admin · Historial'
+    case '/admin/historial/nuevo':
+      return 'Admin · Crear historial'
+    case '/admin/config':
+      return 'Admin · Configuracion'
     default:
       return 'OreStock'
   }

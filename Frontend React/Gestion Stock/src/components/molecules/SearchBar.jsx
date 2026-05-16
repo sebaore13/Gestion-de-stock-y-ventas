@@ -7,7 +7,7 @@ export function SearchBar({ className, ...props }) {
       className={cn(
         'group flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-[rgba(24,24,27,0.75)] backdrop-blur',
         'px-3 h-11',
-        'focus-within:border-[rgba(249,115,22,0.55)] focus-within:shadow-[0_0_0_3px_rgba(249,115,22,0.14)]',
+        'focus-within:border-[rgb(var(--primary-rgb)/0.55)] focus-within:shadow-[0_0_0_3px_rgb(var(--primary-rgb)/0.14)]',
         className,
       )}
     >

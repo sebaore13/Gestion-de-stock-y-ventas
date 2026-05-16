@@ -7,7 +7,7 @@ export const usuarios = [
   {
     id: 2,
     nombre: 'Operador',
-    rol: 'Cajero',
+    rol: 'Vendedor',
   },
 ]
 

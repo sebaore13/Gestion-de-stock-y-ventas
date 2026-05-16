@@ -3,14 +3,14 @@ import { cn } from '../../design/cn'
 import { Sidebar } from '../organisms/Sidebar'
 import { Topbar } from '../organisms/Topbar'
 
-export function MainLayout({ brand, title, topbarRight, children }) {
+export function MainLayout({ brand, title, topbarRight, basePath = '', children }) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
   return (
     <div className="app-shell">
       <div className="min-h-screen grid grid-cols-1 md:grid-cols-[auto_1fr]">
         <div className="hidden md:block">
-          <Sidebar brand={brand} />
+          <Sidebar brand={brand} basePath={basePath} />
         </div>
 
         <div className="min-w-0 bg-zinc-900/40">
@@ -26,6 +26,7 @@ export function MainLayout({ brand, title, topbarRight, children }) {
       <div className="md:hidden">
         <Sidebar
           brand={brand}
+          basePath={basePath}
           variant="drawer"
           open={mobileSidebarOpen}
           onOpenChange={setMobileSidebarOpen}
