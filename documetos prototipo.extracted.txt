@@ -1,0 +1,54 @@
+Mi recomendación real
+React + Tailwind + Vite
+Ese stack es prácticamente una nave espacial para prototipos 🚀
+Porque:
+Levanta rapidísimo 
+Cambios instantáneos 
+Fácil deploy 
+Componentes reutilizables 
+Responsive desde el inicio 
+
+Cómo deberías estructurar el prototipo
+Pantallas principales
+1. Login
+Usuario 
+Contraseña 
+Logo taller 
+
+2. Dashboard principal
+Aquí el cliente ya se enamora del proyecto 👀
+Mostrar:
+Total productos 
+Productos bajos en stock 
+Últimos movimientos 
+Productos más retirados 
+
+3. Inventario
+Tabla moderna:
+Código 
+Nombre 
+Stock 
+Precio referencia 
+Estado 
+Con:
+buscador 
+filtros 
+paginación 
+
+4. Escaneo de productos
+Pantalla simple:
+Input scanner 
+Resultado inmediato 
+Botón descontar 
+
+5. Historial
+Mostrar:
+Qué producto salió 
+Cantidad 
+Fecha 
+Usuario 
+
+6. Configuración
+Usuarios 
+Categorías 
+Alertas

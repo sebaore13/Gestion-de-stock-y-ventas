@@ -1,0 +1,398 @@
+Plataforma de Gestión para Taller
+Control de Stock, Ventas y Escaneo de Productos
+
+1. Descripción General del Proyecto
+El proyecto consiste en desarrollar una plataforma web para un taller o negocio que permita:
+Visualizar productos disponibles.
+Controlar stock en tiempo real.
+Registrar ventas.
+Descontar automáticamente el stock al vender.
+Escanear productos mediante códigos de barras.
+Consultar precios rápidamente.
+Administrar inventario.
+Generar historial de ventas.
+Tener acceso desde computador, tablet o teléfono.
+La idea es transformar el control manual del taller en un sistema centralizado, rápido y escalable.
+
+2. Objetivo Principal
+Desarrollar una plataforma moderna de inventario y ventas que permita automatizar el control de productos del taller mediante lectura de códigos de barras y gestión web centralizada.
+
+3. Objetivos Específicos
+Registrar productos con:
+Nombre
+Código de barras
+Precio
+Stock
+Categoría
+Imagen opcional
+Permitir búsqueda rápida de productos.
+Descontar automáticamente el stock al concretar una venta.
+Mostrar alertas de bajo stock.
+Registrar historial de ventas.
+Incorporar escáner de códigos de barras.
+Permitir acceso multiusuario.
+Centralizar la información en la nube.
+
+4. Factibilidad del Proyecto
+
+Factibilidad Técnica
+El proyecto es completamente viable usando tecnologías web modernas.
+Se puede desarrollar utilizando:
+Frontend:
+React
+Next.js
+HTML/CSS/JS
+Backend:
+Node.js
+Express.js
+Base de datos:
+MySQL
+MySQL
+MongoDB
+Hosting:
+VPS Linux
+Railway
+Render
+Hostinger VPS
+DigitalOcean
+Escaneo:
+Pistola lectora USB
+Cámara del teléfono
+Aplicaciones móviles scanner
+
+Factibilidad Operacional
+El sistema es simple de utilizar:
+El usuario escanea el producto.
+El sistema detecta el código.
+Busca el producto automáticamente.
+Agrega la venta.
+Descuenta stock.
+No requiere conocimientos técnicos avanzados para usarlo.
+
+Factibilidad Económica
+El costo inicial puede ser bajo.
+Costos aproximados:
+Elemento
+Costo aproximado
+Hosting VPS
+$8.000 - $25.000 CLP mensual
+Dominio
+$10.000 - $15.000 anual
+Pistola scanner
+$15.000 - $50.000 CLP
+Desarrollo
+Realizado por el propio desarrollador
+Al desarrollarlo tú mismo, el principal costo será el tiempo.
+
+5. Tecnología Recomendada
+Recomendación Principal: Node.js
+Tu idea de usar Node.js es muy buena para este proyecto.
+¿Por qué Node.js?
+Ventajas:
+Muy rápido para sistemas web.
+Excelente para tiempo real.
+Gran compatibilidad con hosting modernos.
+Fácil integración con APIs.
+Muchísimas librerías.
+Ideal para inventarios y ventas.
+Permite frontend y backend en JavaScript.
+Escalable.
+
+Stack Tecnológico Recomendado
+Frontend
+Opción Recomendada
+React + Vite
+¿Por qué?
+Rápido.
+Moderno.
+Fácil de mantener.
+Excelente UX.
+Compatible con móviles.
+
+Backend
+Node.js
+Express.js
+
+Base de Datos
+Recomendación:
+MySQL
+¿Por qué?
+Muy utilizada en sistemas web.
+Excelente compatibilidad con Node.js.
+Fácil de administrar.
+Buen rendimiento.
+Ideal para sistemas de inventario.
+Amplio soporte en hosting.
+Más simple de mantener para proyectos pequeños y medianos.
+
+6. Arquitectura Recomendada
+Arquitectura Cliente-Servidor
+Frontend
+Interfaz web:
+Panel de ventas
+Productos
+Stock
+Reportes
+Usuarios
+Backend API REST
+Responsable de:
+Autenticación
+CRUD productos
+Control de salidas de productos
+Descuento de stock
+Reportes
+Base de Datos
+Almacena:
+Productos
+Ventas
+Usuarios
+Historial
+Categorías
+
+7. Funcionalidades Principales
+Módulo de Productos
+Funciones:
+Crear productos
+Editar productos
+Eliminar productos
+Subir imágenes
+Asociar código de barras
+Ver stock
+
+Módulo de Movimiento de Productos
+Funciones:
+Escanear producto
+Registrar salida de producto
+Descontar stock automáticamente
+Registrar historial de movimientos
+Visualizar productos retirados
+Registrar cantidad retirada
+
+Módulo de Stock
+Funciones:
+Visualizar inventario
+Alertas de stock bajo
+Historial de movimientos
+Ajustes manuales
+
+Módulo de Usuarios
+Roles:
+Administrador
+Vendedor
+Permisos:
+Gestión completa
+Solo ventas
+Solo consulta
+
+Módulo de Reportes
+Funciones:
+Ventas diarias
+Productos más vendidos
+Historial
+Ganancias
+Stock crítico
+
+8. Sistema de Escaneo
+Opción 1: Pistola de Código de Barras
+Recomendación principal
+La pistola funciona como teclado.
+Cuando escaneas:
+Envía automáticamente el código.
+El sistema lo detecta.
+Busca el producto.
+Agrega al carrito.
+Ventajas:
+Muy rápida.
+Estable.
+Económica.
+Fácil de implementar.
+
+Opción 2: Cámara del Teléfono
+Se puede usar:
+QuaggaJS
+html5-qrcode
+ZXing
+Ventajas:
+No necesitas pistola.
+Funciona desde celular.
+Desventajas:
+Menos rápida.
+Depende de la cámara.
+Puede fallar con mala iluminación.
+
+9. Flujo General del Sistema
+Flujo de Venta
+Usuario inicia sesión.
+Escanea producto.
+Sistema busca producto.
+Agrega producto al carrito.
+Usuario confirma venta.
+Sistema registra movimiento de salida.
+Sistema descuenta stock.
+Movimiento queda almacenado en historial.
+
+10. Base de Datos Recomendada
+Tablas Principales
+usuarios
+id
+nombre
+correo
+contraseña
+rol
+productos
+id
+nombre
+codigo_barras
+precio
+stock
+categoria_id
+imagen
+movimientos_stock
+id
+fecha
+usuario_id
+tipo_movimiento
+observacion
+detalle_movimientos
+id
+movimiento_id
+producto_id
+cantidad
+categorias
+id
+nombre
+
+11. Seguridad Recomendada
+JWT para autenticación.
+Contraseñas cifradas con bcrypt.
+Roles y permisos.
+HTTPS.
+Validaciones backend.
+Protección contra SQL Injection.
+
+12. Hosting Recomendado
+Opción Profesional
+VPS Linux
+Ejemplos:
+Hostinger VPS
+DigitalOcean
+Vultr
+Contabo
+Ventajas:
+Control total.
+Más rendimiento.
+Mejor escalabilidad.
+
+Opción Simple
+Railway o Render
+Ventajas:
+Fácil despliegue.
+Integración GitHub.
+Menos configuración.
+Desventajas:
+Limitaciones en planes gratuitos.
+Menos control.
+
+13. Tiempo Estimado de Desarrollo
+Considerando que desarrollarás solo
+Versión MVP (mínima funcional)
+Incluye:
+Login
+CRUD productos
+Stock
+Ventas
+Escáner
+Base de datos
+Tiempo estimado:
+Etapa
+Tiempo
+Diseño sistema
+3 - 5 días
+Backend
+2 - 3 semanas
+Frontend
+2 - 3 semanas
+Base de datos
+3 - 5 días
+Sistema scanner
+2 - 4 días
+Testing
+1 semana
+Deploy
+2 - 3 días
+Total aproximado:
+6 a 9 semanas
+Trabajando solo y de manera constante.
+
+14. Complejidad Real del Proyecto
+Nivel de Complejidad
+Media
+No es un sistema extremadamente complejo.
+Lo más importante será:
+Mantener ordenado el backend.
+Diseñar bien la base de datos.
+Controlar correctamente el stock.
+Manejar estados de venta.
+
+15. Escalabilidad Futura
+El sistema podría crecer a:
+Multi sucursal.
+Dashboard financiero.
+Integración con MercadoLibre.
+Facturación electrónica.
+App móvil.
+Control de proveedores.
+Compras automáticas.
+Reportes avanzados.
+Integración con impresoras térmicas.
+
+16. Recomendación Final
+Recomendación Técnica Final
+Stack ideal:
+Frontend:
+React + Vite
+Backend:
+Node.js + Express
+Base de datos:
+MySQL
+Hosting:
+VPS Linux
+Scanner:
+Pistola USB
+
+17. Recomendación Estratégica
+La mejor decisión es comenzar con un MVP pequeño.
+Fase 1
+Construir:
+Login
+Productos
+Stock
+Ventas
+Scanner
+Fase 2
+Agregar:
+Reportes
+Roles
+Dashboard
+Historial
+Fase 3
+Escalar:
+Multiusuario
+Multi sucursal
+App móvil
+Integraciones
+
+18. Conclusión
+El proyecto es totalmente factible para un solo desarrollador.
+Usar Node.js es una excelente decisión porque:
+Reduce complejidad.
+Tiene muchísima documentación.
+Es rápido para desarrollar.
+Escala bien.
+Funciona excelente para inventarios y ventas.
+La clave del éxito será:
+Mantener una arquitectura ordenada.
+Avanzar por módulos.
+Construir primero un MVP funcional.
+Evitar agregar demasiadas funciones al inicio.
+Con una planificación correcta, podrías tener una primera versión funcional en aproximadamente 2 meses.
