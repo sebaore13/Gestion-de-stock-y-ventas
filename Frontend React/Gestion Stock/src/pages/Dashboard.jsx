@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Barcode, ShoppingCart, X } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { api } from '../services/api'
 import { Button } from '../components/atoms/Button'
 import { Subtle, Title } from '../components/atoms/Title'
 import { Card, CardBody, CardHeader } from '../components/atoms/Card'
@@ -10,39 +11,46 @@ import { Badge } from '../components/atoms/Badge'
 import { ProductRow } from '../components/molecules/ProductRow'
 import { motionTokens } from '../design/motion'
 import { moneyCLP } from '../design/format'
-import { useAppStore } from '../store/useAppStore'
 
 export function Dashboard() {
   const [codigo, setCodigo] = useState('')
+  const [productoEncontrado, setProductoEncontrado] = useState(null)
+  const [lookupError, setLookupError] = useState(false)
+  const [products, setProducts] = useState([])
+  const [movements, setMovements] = useState([])
 
-  const productos = useAppStore((s) => s.productos)
-  const movimientos = useAppStore((s) => s.movimientos)
-  const usuarioActivoId = useAppStore((s) => s.usuarioActivoId)
+  useEffect(() => {
+    api.get('/products?limit=500').then((res) => setProducts(res.products || [])).catch(() => {})
+    api.get('/movements?limit=20').then((res) => setMovements(res.movements || [])).catch(() => {})
+  }, [])
 
-  const productosById = useMemo(() => new Map(productos.map((p) => [p.id, p])), [productos])
-  const lowStock = useMemo(() => productos.filter((p) => p.stock <= p.minimo), [productos])
-
-  const productoEncontrado = useMemo(() => {
+  useEffect(() => {
     const needle = String(codigo || '').trim()
-    if (!needle) return null
+    if (!needle) {
+      setProductoEncontrado(null)
+      setLookupError(false)
+      return
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await api.get(`/products/by-codigo/${encodeURIComponent(needle)}`)
+        setProductoEncontrado(res.product)
+        setLookupError(false)
+      } catch (err) {
+        if (err.status === 404) {
+          setProductoEncontrado(null)
+          setLookupError(true)
+        }
+      }
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [codigo])
 
-    const exact = productos.find((p) => String(p.codigo) === needle)
-    if (exact) return exact
-
-    // fallback: permite buscar parcial si el usuario pega algo mas largo
-    return (
-      productos.find((p) => String(p.codigo).includes(needle)) ??
-      productos.find((p) => p.nombre.toLowerCase().includes(needle.toLowerCase())) ??
-      null
-    )
-  }, [productos, codigo])
+  const lowStock = useMemo(() => products.filter((p) => p.stock <= p.minimo), [products])
 
   const ultimasVentas = useMemo(() => {
-    return movimientos
-      .filter((m) => m.tipo === 'SALIDA' && m.usuarioId === usuarioActivoId)
-      .slice(0, 4)
-      .map((m) => ({ ...m, producto: productosById.get(m.productoId) }))
-  }, [movimientos, usuarioActivoId, productosById])
+    return movements.filter((m) => m.tipo === 'SALIDA').slice(0, 4)
+  }, [movements])
 
   return (
     <div className="space-y-6">
@@ -76,11 +84,9 @@ export function Dashboard() {
               <Input
                 value={codigo}
                 onChange={(e) => setCodigo(e.target.value)}
-                placeholder="Ej: 780987654"
-                end={<span className="text-xs text-zinc-500">Enter</span>}
+                placeholder="Ej: 780123456"
                 onKeyDown={(e) => {
                   if (e.key !== 'Enter') return
-                  // no-op: resultado se calcula en memo
                 }}
               />
               {codigo.trim() ? (
@@ -122,15 +128,13 @@ export function Dashboard() {
                       <Badge variant={productoEncontrado.stock <= productoEncontrado.minimo ? 'danger' : 'success'}>
                         {productoEncontrado.stock <= productoEncontrado.minimo ? 'Stock Bajo' : 'OK'}
                       </Badge>
-                      <Badge variant="neutral">
-                        {moneyCLP(productoEncontrado.precio)}
-                      </Badge>
+                      <Badge variant="neutral">{moneyCLP(productoEncontrado.precio)}</Badge>
                     </div>
                   </div>
                 </div>
-              ) : (
+              ) : lookupError ? (
                 <div className="py-2 text-sm text-[var(--muted)]">No encontre un producto con ese codigo.</div>
-              )
+              ) : null
             ) : (
               <div className="py-2 text-sm text-[var(--muted)]">Ingresa un codigo o escribe el nombre para ver precio y stock.</div>
             )}
@@ -143,7 +147,7 @@ export function Dashboard() {
           <CardHeader>
             <div>
               <div className="text-sm font-semibold">Ultimas ventas</div>
-              <div className="text-xs text-[var(--muted)] pt-1">Tus ultimas 4 salidas registradas.</div>
+              <div className="text-xs text-[var(--muted)] pt-1">Ultimas 4 salidas registradas.</div>
             </div>
             <Badge variant="neutral">
               <span className="inline-flex items-center gap-2">
@@ -158,21 +162,17 @@ export function Dashboard() {
                   key={m.id}
                   className="flex items-center gap-3 rounded-2xl border border-[rgba(255,255,255,0.06)] bg-white/3 px-4 py-3"
                 >
-                  <Badge variant="info" className="shrink-0">
-                    -{m.cantidad}
-                  </Badge>
+                  <Badge variant="info" className="shrink-0">-{m.cantidad}</Badge>
                   <div className="min-w-0">
-                    <div className="text-sm font-semibold text-zinc-100 truncate">
-                      {m.producto?.nombre ?? 'Producto'}
-                    </div>
+                    <div className="text-sm font-semibold text-zinc-100 truncate">{m.productoNombre ?? 'Producto'}</div>
                     <div className="text-xs text-[var(--muted)] pt-0.5">
-                      {m.producto?.codigo ?? `ID ${m.productoId}`} · {new Date(m.fecha).toLocaleString('es-CL')}
+                      {m.productoCodigo ?? `ID ${m.productoId}`} · {new Date(m.fecha).toLocaleString('es-CL')}
                     </div>
                   </div>
                 </div>
               ))}
               {ultimasVentas.length === 0 ? (
-                <div className="py-6 text-sm text-[var(--muted)]">Todavia no registraste ventas.</div>
+                <div className="py-6 text-sm text-[var(--muted)]">Todavia no se registraron ventas.</div>
               ) : null}
             </div>
           </CardBody>

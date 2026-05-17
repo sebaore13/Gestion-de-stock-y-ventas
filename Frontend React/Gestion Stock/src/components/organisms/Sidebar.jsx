@@ -10,11 +10,12 @@ import {
   ChevronsLeft,
   ChevronsRight,
   User,
+  LogOut,
 } from 'lucide-react'
 import { cn } from '../../design/cn'
 import { motionTokens } from '../../design/motion'
 import { SidebarItem } from '../molecules/SidebarItem'
-import { useAppStore } from '../../store/useAppStore'
+import { useAuthStore } from '../../services/auth.store'
 
 const NAV_VENDEDOR = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, to: '/', end: true },
@@ -40,7 +41,8 @@ export function Sidebar({
   onOpenChange,
 }) {
   const [collapsed, setCollapsed] = useState(false)
-  const rol = useAppStore((s) => s.getRolActivo())
+  const user = useAuthStore((s) => s.user)
+  const logout = useAuthStore((s) => s.logout)
 
   useEffect(() => {
     if (variant !== 'drawer') return
@@ -56,7 +58,6 @@ export function Sidebar({
   const nav = useMemo(() => {
     const isAdminArea = basePath === '/admin'
     if (isAdminArea) return NAV_ADMIN
-    // area vendedor: si es admin también puede ver este menu si entra a '/'
     return NAV_VENDEDOR
   }, [basePath])
 
@@ -123,13 +124,7 @@ export function Sidebar({
             Menu
           </div>
           <div className="flex flex-col gap-1">
-            {nav
-              .filter((item) => {
-                // vendedor no ve admin config aunque navegue area vendedor.
-                if (item.key === 'admin-config') return rol === 'Administrador'
-                return true
-              })
-              .map((item) => (
+            {nav.map((item) => (
               <SidebarItem
                 key={item.key}
                 icon={item.icon}
@@ -143,12 +138,7 @@ export function Sidebar({
         </nav>
 
         <div className={cn('mt-auto px-4 pb-5', collapsed && 'px-2')}>
-          <div
-            className={cn(
-              'rounded-2xl border border-zinc-900 bg-white/3 px-4 py-4',
-              collapsed && 'px-2',
-            )}
-          >
+          <div className={cn('rounded-2xl border border-zinc-900 bg-white/3 px-4 py-4', collapsed && 'px-2')}>
             <div className={cn('flex items-center gap-3', collapsed && 'justify-center')}>
               <div className="h-10 w-10 rounded-2xl border border-white/5 bg-white/4 grid place-items-center text-zinc-100">
                 <User size={18} />
@@ -160,13 +150,21 @@ export function Sidebar({
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -8 }}
                     transition={{ duration: motionTokens.duration.fast, ease: motionTokens.ease.standard }}
-                    className="min-w-0"
+                    className="min-w-0 flex-1"
                   >
-                    <div className="text-sm font-semibold truncate">Seba Ore</div>
-                    <div className="text-xs text-zinc-400 truncate">Administrador</div>
+                    <div className="text-sm font-semibold truncate">{user?.nombre ?? 'Usuario'}</div>
+                    <div className="text-xs text-zinc-400 truncate">{user?.rol ?? ''}</div>
                   </motion.div>
                 )}
               </AnimatePresence>
+              <button
+                onClick={logout}
+                className="h-8 w-8 grid place-items-center rounded-xl text-zinc-400 hover:text-red-400 hover:bg-white/5 transition"
+                aria-label="Cerrar sesion"
+                title="Cerrar sesion"
+              >
+                <LogOut size={16} />
+              </button>
             </div>
           </div>
         </div>

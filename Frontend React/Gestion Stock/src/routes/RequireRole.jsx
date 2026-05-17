@@ -1,8 +1,8 @@
 import { Navigate } from 'react-router-dom'
-import { useAppStore } from '../store/useAppStore'
+import { useAuthStore } from '../services/auth.store'
 
 export function RequireRole({ allow, children }) {
-  const rol = useAppStore((s) => s.getRolActivo())
-  const ok = allow.includes(rol)
+  const user = useAuthStore((s) => s.user)
+  const ok = user && allow.includes(user.rol)
   return ok ? children : <Navigate to="/" replace />
 }

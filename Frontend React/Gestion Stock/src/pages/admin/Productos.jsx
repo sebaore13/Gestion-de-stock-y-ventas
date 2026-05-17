@@ -1,34 +1,94 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
+import { api } from '../../services/api'
 import { Card, CardBody, CardHeader } from '../../components/atoms/Card'
 import { Badge } from '../../components/atoms/Badge'
 import { Button } from '../../components/atoms/Button'
 import { Input } from '../../components/atoms/Input'
+import { Select } from '../../components/atoms/Select'
 import { SearchBar } from '../../components/molecules/SearchBar'
-import { useAppStore } from '../../store/useAppStore'
 
 export function AdminProductos() {
-  const productos = useAppStore((s) => s.productos)
-  const crearProducto = useAppStore((s) => s.crearProducto)
-  const editarProducto = useAppStore((s) => s.editarProducto)
-  const borrarProducto = useAppStore((s) => s.borrarProducto)
-
+  const [products, setProducts] = useState([])
+  const [categories, setCategories] = useState([])
   const [q, setQ] = useState('')
   const [form, setForm] = useState({
     codigo: '',
     nombre: '',
-    categoria: 'General',
+    categoriaId: '',
     stock: 0,
     minimo: 0,
     precio: 0,
     fechaIngreso: '',
   })
 
+  async function load() {
+    try {
+      const [p, c] = await Promise.all([
+        api.get('/products?limit=500'),
+        api.get('/categories'),
+      ])
+      setProducts(p.products || [])
+      setCategories(c.categories || [])
+      if (!form.categoriaId && c.categories?.length) {
+        setForm((s) => ({ ...s, categoriaId: String(c.categories[0].id) }))
+      }
+    } catch {
+      toast.error('Error al cargar datos')
+    }
+  }
+
+  useEffect(() => { load() }, [])
+
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase()
-    if (!needle) return productos
-    return productos.filter((p) => `${p.codigo} ${p.nombre} ${p.categoria}`.toLowerCase().includes(needle))
-  }, [productos, q])
+    if (!needle) return products
+    return products.filter((p) => `${p.codigo} ${p.nombre} ${p.categoria}`.toLowerCase().includes(needle))
+  }, [products, q])
+
+  async function handleCreate() {
+    if (!form.codigo.trim() || !form.nombre.trim()) {
+      toast.error('Codigo y nombre requeridos')
+      return
+    }
+    try {
+      const body = {
+        codigo: form.codigo.trim(),
+        nombre: form.nombre.trim(),
+        categoriaId: Number(form.categoriaId),
+        precio: Number(form.precio) || 0,
+        stock: Number(form.stock) || 0,
+        minimo: Number(form.minimo) || 0,
+      }
+      if (form.fechaIngreso) body.fechaIngreso = form.fechaIngreso
+      await api.post('/products', body)
+      toast.success('Producto creado')
+      setForm({ codigo: '', nombre: '', categoriaId: form.categoriaId, stock: 0, minimo: 0, precio: 0, fechaIngreso: '' })
+      load()
+    } catch (err) {
+      toast.error('No se pudo crear', { description: err.message })
+    }
+  }
+
+  async function handleUpdate(id, patch) {
+    try {
+      await api.put(`/products/${id}`, patch)
+      toast.success('Producto actualizado')
+      load()
+    } catch (err) {
+      toast.error('No se pudo actualizar', { description: err.message })
+    }
+  }
+
+  async function handleDelete(id) {
+    try {
+      await api.del(`/products/${id}`)
+      toast.success('Producto eliminado')
+      load()
+    } catch (err) {
+      toast.error('No se pudo eliminar', { description: err.message })
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -36,7 +96,7 @@ export function AdminProductos() {
         <CardHeader>
           <div>
             <div className="text-sm font-semibold">Crear producto</div>
-            <div className="text-xs text-[var(--muted)] pt-1">Mock (sin backend).</div>
+            <div className="text-xs text-[var(--muted)] pt-1">Nuevo producto en el sistema.</div>
           </div>
           <Badge variant="neutral">Admin</Badge>
         </CardHeader>
@@ -52,15 +112,16 @@ export function AdminProductos() {
             </div>
             <div className="space-y-1">
               <div className="text-xs text-zinc-400">Categoria</div>
-              <Input value={form.categoria} onChange={(e) => setForm((s) => ({ ...s, categoria: e.target.value }))} placeholder="Ej: Filtros" />
+              <Select value={form.categoriaId} onChange={(e) => setForm((s) => ({ ...s, categoriaId: e.target.value }))}>
+                <option value="">Seleccionar...</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.nombre}</option>
+                ))}
+              </Select>
             </div>
             <div className="space-y-1">
               <div className="text-xs text-zinc-400">Fecha de ingreso</div>
-              <Input
-                value={form.fechaIngreso}
-                onChange={(e) => setForm((s) => ({ ...s, fechaIngreso: e.target.value }))}
-                type="date"
-              />
+              <Input value={form.fechaIngreso} onChange={(e) => setForm((s) => ({ ...s, fechaIngreso: e.target.value }))} type="date" />
             </div>
             <div className="space-y-1">
               <div className="text-xs text-zinc-400">Precio</div>
@@ -76,20 +137,7 @@ export function AdminProductos() {
             </div>
           </div>
           <div className="pt-3">
-            <Button
-              variant="primary"
-              onClick={() => {
-                const res = crearProducto(form)
-                if (!res.ok) {
-                  toast.error('No se pudo crear', { description: res.error })
-                  return
-                }
-                toast.success('Producto creado', { description: res.producto.nombre })
-                setForm({ codigo: '', nombre: '', categoria: 'General', stock: 0, minimo: 0, precio: 0, fechaIngreso: '' })
-              }}
-            >
-              Crear
-            </Button>
+            <Button variant="primary" onClick={handleCreate}>Crear</Button>
           </div>
         </CardBody>
       </Card>
@@ -98,9 +146,9 @@ export function AdminProductos() {
         <CardHeader>
           <div>
             <div className="text-sm font-semibold">Administrar productos</div>
-            <div className="text-xs text-[var(--muted)] pt-1">Editar, borrar (mock).</div>
+            <div className="text-xs text-[var(--muted)] pt-1">Editar, borrar.</div>
           </div>
-          <Badge variant="neutral">{productos.length}</Badge>
+          <Badge variant="neutral">{products.length}</Badge>
         </CardHeader>
         <CardBody>
           <div className="pb-4">
@@ -115,12 +163,9 @@ export function AdminProductos() {
               >
                 <div className="min-w-0">
                   <div className="text-sm font-semibold text-zinc-100 truncate">{p.nombre}</div>
-                  <div className="text-xs text-[var(--muted)] pt-0.5">
-                    {p.codigo} · {p.categoria}
-                  </div>
+                  <div className="text-xs text-[var(--muted)] pt-0.5">{p.codigo} · {p.categoria}</div>
                   <div className="text-xs text-[var(--muted)] pt-1">
-                    Ingreso:{' '}
-                    {p.fechaIngreso ? new Date(p.fechaIngreso).toLocaleDateString('es-CL') : 'N/A'}
+                    Ingreso: {p.fechaIngreso ? new Date(p.fechaIngreso).toLocaleDateString('es-CL') : 'N/A'}
                   </div>
                   <div className="pt-2 flex items-center gap-2">
                     <Badge variant={p.stock <= p.minimo ? 'danger' : 'success'}>
@@ -138,113 +183,58 @@ export function AdminProductos() {
                     <Input
                       defaultValue={p.nombre}
                       onBlur={(e) => {
-                        const res = editarProducto({
-                          id: p.id,
-                          codigo: p.codigo,
-                          nombre: e.target.value,
-                          categoria: p.categoria,
-                          stock: p.stock,
-                          minimo: p.minimo,
-                          precio: p.precio,
-                          fechaIngreso: p.fechaIngreso,
-                        })
-                        if (!res.ok) toast.error('No se pudo editar', { description: res.error })
+                        if (e.target.value.trim() && e.target.value.trim() !== p.nombre) {
+                          handleUpdate(p.id, { nombre: e.target.value.trim() })
+                        }
                       }}
                     />
                   </div>
-
                   <div className="space-y-1">
-                    <div className="text-xs text-zinc-400">Fecha de ingreso</div>
+                    <div className="text-xs text-zinc-400">Fecha ingreso</div>
                     <Input
                       defaultValue={p.fechaIngreso ? p.fechaIngreso.slice(0, 10) : ''}
                       type="date"
                       onBlur={(e) => {
-                        const res = editarProducto({
-                          id: p.id,
-                          codigo: p.codigo,
-                          nombre: p.nombre,
-                          categoria: p.categoria,
-                          stock: p.stock,
-                          minimo: p.minimo,
-                          precio: p.precio,
-                          fechaIngreso: e.target.value,
-                        })
-                        if (!res.ok) toast.error('No se pudo editar', { description: res.error })
+                        if (e.target.value !== (p.fechaIngreso ? p.fechaIngreso.slice(0, 10) : '')) {
+                          handleUpdate(p.id, { fechaIngreso: e.target.value || null })
+                        }
                       }}
                     />
                   </div>
-
                   <div className="space-y-1">
                     <div className="text-xs text-zinc-400">Stock</div>
                     <Input
                       defaultValue={p.stock}
                       type="number"
                       onBlur={(e) => {
-                        const res = editarProducto({
-                          id: p.id,
-                          codigo: p.codigo,
-                          nombre: p.nombre,
-                          categoria: p.categoria,
-                          stock: Number(e.target.value),
-                          minimo: p.minimo,
-                          precio: p.precio,
-                          fechaIngreso: p.fechaIngreso,
-                        })
-                        if (res.ok) toast('Stock actualizado')
-                        else toast.error('No se pudo editar', { description: res.error })
+                        const v = Number(e.target.value)
+                        if (v !== p.stock) handleUpdate(p.id, { stock: v })
                       }}
                     />
                   </div>
-
                   <div className="space-y-1">
                     <div className="text-xs text-zinc-400">Minimo</div>
                     <Input
                       defaultValue={p.minimo}
                       type="number"
                       onBlur={(e) => {
-                        const res = editarProducto({
-                          id: p.id,
-                          codigo: p.codigo,
-                          nombre: p.nombre,
-                          categoria: p.categoria,
-                          stock: p.stock,
-                          minimo: Number(e.target.value),
-                          precio: p.precio,
-                          fechaIngreso: p.fechaIngreso,
-                        })
-                        if (!res.ok) toast.error('No se pudo editar', { description: res.error })
+                        const v = Number(e.target.value)
+                        if (v !== p.minimo) handleUpdate(p.id, { minimo: v })
                       }}
                     />
                   </div>
-
                   <div className="space-y-1 col-span-2">
                     <div className="text-xs text-zinc-400">Precio</div>
                     <Input
                       defaultValue={p.precio}
                       type="number"
                       onBlur={(e) => {
-                        const res = editarProducto({
-                          id: p.id,
-                          codigo: p.codigo,
-                          nombre: p.nombre,
-                          categoria: p.categoria,
-                          stock: p.stock,
-                          minimo: p.minimo,
-                          precio: Number(e.target.value),
-                          fechaIngreso: p.fechaIngreso,
-                        })
-                        if (!res.ok) toast.error('No se pudo editar', { description: res.error })
+                        const v = Number(e.target.value)
+                        if (v !== p.precio) handleUpdate(p.id, { precio: v })
                       }}
                     />
                   </div>
-                  <Button
-                    variant="danger"
-                    className="col-span-2 justify-center"
-                    onClick={() => {
-                      borrarProducto({ id: p.id })
-                      toast.success('Producto eliminado')
-                    }}
-                  >
+                  <Button variant="danger" className="col-span-2 justify-center" onClick={() => handleDelete(p.id)}>
                     Borrar producto
                   </Button>
                 </div>

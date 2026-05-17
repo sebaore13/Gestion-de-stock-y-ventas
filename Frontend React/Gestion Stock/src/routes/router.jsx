@@ -1,4 +1,6 @@
 import { createHashRouter } from 'react-router-dom'
+import { Login } from '../pages/Login'
+import { RootGuard } from '../components/organisms/AuthGuard'
 import { AppShell } from './AppShell'
 import { RequireRole } from './RequireRole'
 import { AdminShell } from './AdminShell'
@@ -15,29 +17,38 @@ import { AdminHistorialNuevo } from '../pages/admin/HistorialNuevo'
 
 export const router = createHashRouter([
   {
-    element: <AppShell />,
-    children: [
-      { path: '/', element: <Dashboard /> },
-      { path: '/inventario', element: <Inventario /> },
-      { path: '/ventas', element: <Ventas /> },
-      { path: '/historial', element: <Historial /> },
-      { path: '/config', element: <Config /> },
-    ],
+    path: '/login',
+    element: <Login />,
   },
   {
-    path: '/admin',
-    element: (
-      <RequireRole allow={['Administrador']}>
-        <AdminShell />
-      </RequireRole>
-    ),
+    element: <RootGuard />,
     children: [
-      { index: true, element: <AdminDashboard /> },
-      { path: 'productos', element: <AdminProductos /> },
-      { path: 'usuarios', element: <AdminUsuarios /> },
-      { path: 'historial', element: <AdminHistorial /> },
-      { path: 'historial/nuevo', element: <AdminHistorialNuevo /> },
-      { path: 'config', element: <Config /> },
+      {
+        element: <AppShell />,
+        children: [
+          { path: '/', element: <Dashboard /> },
+          { path: '/inventario', element: <Inventario /> },
+          { path: '/ventas', element: <Ventas /> },
+          { path: '/historial', element: <Historial /> },
+          { path: '/config', element: <Config /> },
+        ],
+      },
+      {
+        path: '/admin',
+        element: (
+          <RequireRole allow={['Administrador']}>
+            <AdminShell />
+          </RequireRole>
+        ),
+        children: [
+          { index: true, element: <AdminDashboard /> },
+          { path: 'productos', element: <AdminProductos /> },
+          { path: 'usuarios', element: <AdminUsuarios /> },
+          { path: 'historial', element: <AdminHistorial /> },
+          { path: 'historial/nuevo', element: <AdminHistorialNuevo /> },
+          { path: 'config', element: <Config /> },
+        ],
+      },
     ],
   },
 ])

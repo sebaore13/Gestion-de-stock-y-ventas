@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ScanLine, X } from 'lucide-react'
 import { toast } from 'sonner'
+import { api } from '../services/api'
 import { Badge } from '../components/atoms/Badge'
 import { Button } from '../components/atoms/Button'
 import { Card, CardBody, CardHeader } from '../components/atoms/Card'
@@ -17,72 +18,57 @@ export function Ventas() {
 }
 
 function VentasPage() {
-  const productos = useAppStore((s) => s.productos)
   const ventaItems = useAppStore((s) => s.ventaItems)
   const setVentaCantidad = useAppStore((s) => s.setVentaCantidad)
   const clearVenta = useAppStore((s) => s.clearVenta)
-  const registrarSalida = useAppStore((s) => s.registrarSalida)
 
   const [query, setQuery] = useState('')
   const [categoria, setCategoria] = useState('')
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [results, setResults] = useState([])
+  const [categories, setCategories] = useState([])
+  const [searching, setSearching] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
-  const productosMapped = useMemo(
-    () =>
-      productos.map((p) => ({
-        id: p.id,
-        sku: p.codigo,
-        name: p.nombre,
-        stock: p.stock,
-        min: p.minimo,
-        price: p.precio,
-        category: p.categoria,
-      })),
-    [productos],
-  )
+  useEffect(() => {
+    api.get('/categories').then((res) => setCategories(res.categories)).catch(() => {})
+  }, [])
 
-  const categorias = useMemo(() => {
-    const set = new Set(productos.map((p) => p.categoria).filter(Boolean))
-    return Array.from(set).sort((a, b) => String(a).localeCompare(String(b)))
-  }, [productos])
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    const hasQuery = Boolean(q)
-    const hasCategoria = Boolean(categoria)
-
-    // No mostrar todo el catalogo en Ventas.
-    if (!hasQuery && !hasCategoria) return []
-
-    return productosMapped
-      .filter((p) => (hasCategoria ? p.category === categoria : true))
-      .filter((p) => (hasQuery ? `${p.sku} ${p.name}`.toLowerCase().includes(q) : true))
-  }, [productosMapped, query, categoria])
-
-  // UX: si el usuario escribe un codigo exacto (scanner), sugerimos auto-agregar.
   useEffect(() => {
     const q = query.trim()
-    if (!q) return
-    const exact = productosMapped.find((p) => p.sku === q)
-    if (!exact) return
-    // No auto-agregamos silenciosamente; mostramos CTA.
-  }, [query, productosMapped])
+    if (!q && !categoria) {
+      setResults([])
+      return
+    }
+    const timer = setTimeout(async () => {
+      setSearching(true)
+      try {
+        const params = new URLSearchParams()
+        if (q) params.set('query', q)
+        if (categoria) params.set('categoriaId', categoria)
+        const res = await api.get(`/products?${params.toString()}`)
+        setResults(res.products || [])
+      } catch {
+        setResults([])
+      } finally {
+        setSearching(false)
+      }
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [query, categoria])
 
   const cart = useMemo(() => {
-    const byId = new Map(productosMapped.map((p) => [p.id, p]))
-    return ventaItems
-      .map((i) => {
-        const p = byId.get(i.productoId)
-        if (!p) return null
-        return { product: p, qty: i.cantidad }
-      })
-      .filter(Boolean)
-  }, [ventaItems, productosMapped])
+    const byId = new Map(results.concat(categories.length ? [] : []).map((p) => [p.id, p]))
+    return ventaItems.map((i) => {
+      const p = byId.get(i.productoId)
+      return p ? { product: p, qty: i.cantidad } : null
+    }).filter(Boolean)
+  }, [ventaItems, results])
 
   const totals = useMemo(() => {
     const unique = cart.length
     const items = cart.reduce((acc, row) => acc + row.qty, 0)
-    const total = cart.reduce((acc, row) => acc + row.qty * row.product.price, 0)
+    const total = cart.reduce((acc, row) => acc + row.qty * row.product.precio, 0)
     return { unique, items, total }
   }, [cart])
 
@@ -90,7 +76,7 @@ function VentasPage() {
     const existing = ventaItems.find((i) => i.productoId === product.id)
     const nextQty = (existing?.cantidad ?? 0) + 1
     setVentaCantidad({ productoId: product.id, cantidad: nextQty })
-    toast.success('Producto agregado', { description: `${product.name} (${product.sku})` })
+    toast.success('Producto agregado', { description: `${product.nombre} (${product.codigo})` })
   }
 
   function inc(id) {
@@ -107,12 +93,27 @@ function VentasPage() {
     setVentaCantidad({ productoId: id, cantidad: 0 })
   }
 
-  function confirm() {
+  async function confirm() {
     const items = ventaItems.filter((i) => i.cantidad > 0)
-    registrarSalida({ items })
-    clearVenta()
-    setConfirmOpen(false)
-    toast('Stock actualizado', { description: `Se registraron ${totals.items} items` })
+    if (items.length === 0) return
+    setSubmitting(true)
+    try {
+      await api.post('/sales', { items })
+      clearVenta()
+      setConfirmOpen(false)
+      toast.success('Venta registrada', { description: `Se vendieron ${totals.items} items` })
+    } catch (err) {
+      if (err.status === 409) {
+        const details = err.data?.details || []
+        toast.error('Stock insuficiente', {
+          description: details.map((d) => `${d.nombre}: disponible ${d.disponible}, solicitado ${d.solicitado}`).join(', '),
+        })
+      } else {
+        toast.error('Error al registrar venta', { description: err.message })
+      }
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -123,7 +124,6 @@ function VentasPage() {
             <div className="text-sm font-semibold">Ventas</div>
             <div className="text-xs text-[var(--muted)] pt-1">Buscar o escanear producto.</div>
           </div>
-          <Badge variant="neutral">Demo</Badge>
         </CardHeader>
         <CardBody>
           <div className="pb-4">
@@ -135,9 +135,9 @@ function VentasPage() {
               />
               <Select value={categoria} onChange={(e) => setCategoria(e.target.value)}>
                 <option value="">Todas las categorias</option>
-                {categorias.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nombre}
                   </option>
                 ))}
               </Select>
@@ -154,31 +154,35 @@ function VentasPage() {
           </div>
 
           <div className="space-y-2">
-            {filtered.slice(0, 10).map((p) => {
-              const isLow = p.stock <= p.min
-              return (
-                <button key={p.id} className="w-full text-left" onClick={() => add(p)}>
-                  <div
-                    className={cn(
-                      'flex items-center gap-3 rounded-2xl border bg-white/3 px-4 py-3 transition',
-                      'border-[rgba(255,255,255,0.06)] hover:bg-white/5',
-                    )}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-semibold text-zinc-100 truncate">{p.name}</div>
-                      <div className="text-xs text-[var(--muted)] pt-0.5">
-                        {p.sku} · {moneyCLP(p.price)}
+            {searching ? (
+              <div className="py-6 text-xs text-[var(--muted)]">Buscando...</div>
+            ) : (
+              results.slice(0, 10).map((p) => {
+                const isLow = p.stock <= p.minimo
+                return (
+                  <button key={p.id} className="w-full text-left" onClick={() => add(p)}>
+                    <div
+                      className={cn(
+                        'flex items-center gap-3 rounded-2xl border bg-white/3 px-4 py-3 transition',
+                        'border-[rgba(255,255,255,0.06)] hover:bg-white/5',
+                      )}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-semibold text-zinc-100 truncate">{p.nombre}</div>
+                        <div className="text-xs text-[var(--muted)] pt-0.5">
+                          {p.codigo} · {moneyCLP(p.precio)}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={isLow ? 'danger' : 'success'}>{isLow ? 'Bajo' : 'OK'}</Badge>
+                        <Badge variant={isLow ? 'danger' : 'neutral'}>{p.stock}</Badge>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={isLow ? 'danger' : 'success'}>{isLow ? 'Bajo' : 'OK'}</Badge>
-                      <Badge variant={isLow ? 'danger' : 'neutral'}>{p.stock}</Badge>
-                    </div>
-                  </div>
-                </button>
-              )
-            })}
-            {filtered.length === 0 ? (
+                  </button>
+                )
+              })
+            )}
+            {!searching && results.length === 0 ? (
               <div className="py-6 text-xs text-[var(--muted)]">
                 {query.trim() || categoria ? 'Sin resultados.' : 'Ingresa un codigo o escribe el nombre de un producto para ver precio y stock.'}
               </div>
@@ -202,32 +206,32 @@ function VentasPage() {
         </CardHeader>
         <CardBody>
           <div className="space-y-2">
-            {cart.map((row) => (
-              <div
-                key={row.product.id}
-                className="flex items-center gap-3 rounded-2xl border border-[rgba(255,255,255,0.06)] bg-white/3 px-4 py-3"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-semibold text-zinc-100 truncate">{row.product.name}</div>
-                  <div className="text-xs text-[var(--muted)] pt-0.5">
-                    {row.product.sku} · {moneyCLP(row.product.price)}
+            {ventaItems.map((item) => {
+              const prod = results.find((p) => p.id === item.productoId)
+              if (!prod) return null
+              return (
+                <div
+                  key={prod.id}
+                  className="flex items-center gap-3 rounded-2xl border border-[rgba(255,255,255,0.06)] bg-white/3 px-4 py-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-zinc-100 truncate">{prod.nombre}</div>
+                    <div className="text-xs text-[var(--muted)] pt-0.5">
+                      {prod.codigo} · {moneyCLP(prod.precio)}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => dec(prod.id)}>-</Button>
+                    <Badge variant="neutral">{item.cantidad}</Badge>
+                    <Button variant="ghost" size="sm" onClick={() => inc(prod.id)}>+</Button>
+                    <Button variant="ghost" size="sm" onClick={() => remove(prod.id)}>
+                      <X size={16} />
+                    </Button>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="sm" onClick={() => dec(row.product.id)}>
-                    -
-                  </Button>
-                  <Badge variant="neutral">{row.qty}</Badge>
-                  <Button variant="ghost" size="sm" onClick={() => inc(row.product.id)}>
-                    +
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => remove(row.product.id)}>
-                    <X size={16} />
-                  </Button>
-                </div>
-              </div>
-            ))}
-            {cart.length === 0 ? (
+              )
+            })}
+            {ventaItems.length === 0 ? (
               <div className="py-6 text-sm text-[var(--muted)]">Aun no agregaste productos.</div>
             ) : null}
           </div>
@@ -247,47 +251,30 @@ function VentasPage() {
             </div>
 
             <div className="pt-4 flex gap-2">
-              <Button
-                variant="secondary"
-                className="w-full justify-center"
-                onClick={() => {
-                  clearVenta()
-                  toast('Carrito limpio')
-                }}
-                disabled={cart.length === 0}
-              >
+              <Button variant="secondary" className="w-full justify-center" onClick={clearVenta} disabled={ventaItems.length === 0}>
                 Limpiar
               </Button>
-              <Button
-                variant="primary"
-                className="w-full justify-center"
-                onClick={() => setConfirmOpen(true)}
-                disabled={cart.length === 0}
-              >
-                Registrar salida
+              <Button variant="primary" className="w-full justify-center" onClick={() => setConfirmOpen(true)} disabled={ventaItems.length === 0 || submitting}>
+                {submitting ? 'Registrando...' : 'Registrar salida'}
               </Button>
             </div>
           </div>
         </CardBody>
       </Card>
 
-      <Modal open={confirmOpen} onClose={() => setConfirmOpen(false)} title="Registrar salida (demo)">
+      <Modal open={confirmOpen} onClose={() => setConfirmOpen(false)} title="Registrar salida">
         <div className="space-y-3">
-          <Title as="h2" className="text-lg">
-            Confirmacion
-          </Title>
-          <Subtle>Simulacion: descuenta stock y agrega un movimiento. El objetivo es UX y fluidez.</Subtle>
+          <Title as="h2" className="text-lg">Confirmacion</Title>
+          <Subtle>Confirma la venta de {totals.items} items por {moneyCLP(totals.total)}.</Subtle>
           <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-white/3 p-4">
             <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Total</div>
             <div className="pt-2 text-base font-semibold text-zinc-100">{moneyCLP(totals.total)}</div>
             <div className="pt-1 text-xs text-[var(--muted)]">{totals.items} items</div>
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setConfirmOpen(false)}>
-              Cancelar
-            </Button>
-            <Button variant="primary" onClick={confirm}>
-              Confirmar
+            <Button variant="ghost" onClick={() => setConfirmOpen(false)}>Cancelar</Button>
+            <Button variant="primary" onClick={confirm} disabled={submitting}>
+              {submitting ? 'Registrando...' : 'Confirmar'}
             </Button>
           </div>
         </div>
