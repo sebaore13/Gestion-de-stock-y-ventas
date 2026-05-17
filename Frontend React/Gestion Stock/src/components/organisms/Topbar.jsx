@@ -2,7 +2,7 @@ import { Calendar, Menu, User } from 'lucide-react'
 import { cn } from '../../design/cn'
 
 function todayLabel() {
-  return new Intl.DateTimeFormat('es-AR', {
+  return new Intl.DateTimeFormat('es-CL', {
     weekday: 'short',
     day: '2-digit',
     month: 'short',

@@ -120,7 +120,7 @@ export function AdminProductos() {
                   </div>
                   <div className="text-xs text-[var(--muted)] pt-1">
                     Ingreso:{' '}
-                    {p.fechaIngreso ? new Date(p.fechaIngreso).toLocaleDateString('es-AR') : 'N/A'}
+                    {p.fechaIngreso ? new Date(p.fechaIngreso).toLocaleDateString('es-CL') : 'N/A'}
                   </div>
                   <div className="pt-2 flex items-center gap-2">
                     <Badge variant={p.stock <= p.minimo ? 'danger' : 'success'}>

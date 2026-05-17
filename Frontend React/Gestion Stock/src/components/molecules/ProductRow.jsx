@@ -2,10 +2,7 @@ import { motion } from 'framer-motion'
 import { cn } from '../../design/cn'
 import { motionTokens } from '../../design/motion'
 import { Badge } from '../atoms/Badge'
-
-function moneyARS(value) {
-  return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(value)
-}
+import { moneyCLP } from '../../design/format'
 
 export function ProductRow({ product, className }) {
   const low = product.stock <= product.min
@@ -30,7 +27,7 @@ export function ProductRow({ product, className }) {
           </div>
         </div>
         <div className="pt-0.5 text-xs text-[var(--muted)]">
-          {moneyARS(product.price)} · Min {product.min}
+          {moneyCLP(product.price)} · Min {product.min}
         </div>
       </div>
 

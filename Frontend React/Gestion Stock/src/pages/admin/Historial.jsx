@@ -88,7 +88,7 @@ export function AdminHistorial() {
               <tbody>
                 {rows.map((m) => (
                   <tr key={m.id} className="border-t border-[rgba(255,255,255,0.06)]">
-                    <td className="px-4 py-3 text-zinc-300">{new Date(m.fecha).toLocaleString('es-AR')}</td>
+                    <td className="px-4 py-3 text-zinc-300">{new Date(m.fecha).toLocaleString('es-CL')}</td>
                     <td className="px-4 py-3">
                       <Badge variant={variantTipo(m.tipo)}>{labelTipo(m.tipo)}</Badge>
                     </td>

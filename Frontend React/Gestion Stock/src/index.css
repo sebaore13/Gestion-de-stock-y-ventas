@@ -50,8 +50,7 @@ body {
 
 body {
   margin: 0;
-  background: radial-gradient(1100px 760px at 18% 12%, rgba(220, 38, 38, 0.14), transparent 58%),
-    radial-gradient(900px 700px at 88% 20%, rgba(255, 255, 255, 0.06), transparent 56%), var(--bg);
+  background: var(--bg);
   color: var(--text);
 }
 
@@ -82,4 +81,9 @@ textarea:focus-visible {
 /* App-level helper */
 .app-shell {
   min-height: 100vh;
+  background: radial-gradient(1100px 760px at 18% 12%, rgba(220, 38, 38, 0.14), transparent 58%),
+    radial-gradient(900px 700px at 88% 20%, rgba(255, 255, 255, 0.06), transparent 56%), var(--bg);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-position: center top;
 }

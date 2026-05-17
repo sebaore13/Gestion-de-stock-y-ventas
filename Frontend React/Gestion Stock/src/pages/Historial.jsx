@@ -6,7 +6,7 @@ import { useAppStore } from '../store/useAppStore'
 import { usuarios } from '../data/usuarios'
 
 function formatDate(iso) {
-  return new Intl.DateTimeFormat('es-AR', {
+  return new Intl.DateTimeFormat('es-CL', {
     day: '2-digit',
     month: 'short',
     hour: '2-digit',

@@ -21,28 +21,28 @@ export function DashboardStats({ stockPulse = 0 }) {
   const kpis = [
     {
       title: 'Unidades en stock',
-      value: new Intl.NumberFormat('es-AR').format(unidades),
+      value: new Intl.NumberFormat('es-CL').format(unidades),
       delta: 6,
       icon: Boxes,
       accent: 'orange',
     },
     {
       title: 'Productos activos',
-      value: new Intl.NumberFormat('es-AR').format(productosActivos),
+      value: new Intl.NumberFormat('es-CL').format(productosActivos),
       delta: 0,
       icon: Barcode,
       accent: 'blue',
     },
     {
       title: 'Movimientos hoy',
-      value: new Intl.NumberFormat('es-AR').format(movsHoy),
+      value: new Intl.NumberFormat('es-CL').format(movsHoy),
       delta: 12,
       icon: ShoppingCart,
       accent: 'green',
     },
     {
       title: 'Bajo minimo',
-      value: new Intl.NumberFormat('es-AR').format(bajoMinimo),
+      value: new Intl.NumberFormat('es-CL').format(bajoMinimo),
       delta: -4,
       icon: TriangleAlert,
       accent: 'red',

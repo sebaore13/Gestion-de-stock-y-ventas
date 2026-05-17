@@ -9,14 +9,11 @@ import { Select } from '../components/atoms/Select'
 import { Subtle, Title } from '../components/atoms/Title'
 import { SearchBar } from '../components/molecules/SearchBar'
 import { cn } from '../design/cn'
+import { moneyCLP } from '../design/format'
 import { useAppStore } from '../store/useAppStore'
 
 export function Ventas() {
   return <VentasPage />
-}
-
-function moneyARS(value) {
-  return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(value)
 }
 
 function VentasPage() {
@@ -170,7 +167,7 @@ function VentasPage() {
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-semibold text-zinc-100 truncate">{p.name}</div>
                       <div className="text-xs text-[var(--muted)] pt-0.5">
-                        {p.sku} · {moneyARS(p.price)}
+                        {p.sku} · {moneyCLP(p.price)}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -213,7 +210,7 @@ function VentasPage() {
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-semibold text-zinc-100 truncate">{row.product.name}</div>
                   <div className="text-xs text-[var(--muted)] pt-0.5">
-                    {row.product.sku} · {moneyARS(row.product.price)}
+                    {row.product.sku} · {moneyCLP(row.product.price)}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -246,7 +243,7 @@ function VentasPage() {
             </div>
             <div className="flex items-center justify-between text-base pt-3">
               <span className="text-zinc-200 font-semibold">Total</span>
-              <span className="text-zinc-100 font-semibold">{moneyARS(totals.total)}</span>
+              <span className="text-zinc-100 font-semibold">{moneyCLP(totals.total)}</span>
             </div>
 
             <div className="pt-4 flex gap-2">
@@ -282,7 +279,7 @@ function VentasPage() {
           <Subtle>Simulacion: descuenta stock y agrega un movimiento. El objetivo es UX y fluidez.</Subtle>
           <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-white/3 p-4">
             <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Total</div>
-            <div className="pt-2 text-base font-semibold text-zinc-100">{moneyARS(totals.total)}</div>
+            <div className="pt-2 text-base font-semibold text-zinc-100">{moneyCLP(totals.total)}</div>
             <div className="pt-1 text-xs text-[var(--muted)]">{totals.items} items</div>
           </div>
           <div className="flex justify-end gap-2">

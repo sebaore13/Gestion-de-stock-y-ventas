@@ -33,21 +33,21 @@ export function AdminDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard
           title="Total productos"
-          value={new Intl.NumberFormat('es-AR').format(totalProductos)}
+          value={new Intl.NumberFormat('es-CL').format(totalProductos)}
           delta={0}
           icon={Boxes}
           accent="red"
         />
         <StatCard
           title="Stock critico"
-          value={new Intl.NumberFormat('es-AR').format(criticos)}
+          value={new Intl.NumberFormat('es-CL').format(criticos)}
           delta={criticos ? -4 : 0}
           icon={TriangleAlert}
           accent="red"
         />
         <StatCard
           title="Ventas del dia"
-          value={new Intl.NumberFormat('es-AR').format(ventasHoy)}
+          value={new Intl.NumberFormat('es-CL').format(ventasHoy)}
           delta={12}
           icon={ShoppingCart}
           accent="green"

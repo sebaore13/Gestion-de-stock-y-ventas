@@ -9,6 +9,7 @@ import { Input } from '../components/atoms/Input'
 import { Badge } from '../components/atoms/Badge'
 import { ProductRow } from '../components/molecules/ProductRow'
 import { motionTokens } from '../design/motion'
+import { moneyCLP } from '../design/format'
 import { useAppStore } from '../store/useAppStore'
 
 export function Dashboard() {
@@ -112,7 +113,7 @@ export function Dashboard() {
                       <div className="text-xs text-[var(--muted)] pt-1">
                         Ingreso:{' '}
                         {productoEncontrado.fechaIngreso
-                          ? new Date(productoEncontrado.fechaIngreso).toLocaleDateString('es-AR')
+                          ? new Date(productoEncontrado.fechaIngreso).toLocaleDateString('es-CL')
                           : 'N/A'}
                       </div>
                     </div>
@@ -122,9 +123,7 @@ export function Dashboard() {
                         {productoEncontrado.stock <= productoEncontrado.minimo ? 'Stock Bajo' : 'OK'}
                       </Badge>
                       <Badge variant="neutral">
-                        {new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(
-                          productoEncontrado.precio,
-                        )}
+                        {moneyCLP(productoEncontrado.precio)}
                       </Badge>
                     </div>
                   </div>
@@ -167,7 +166,7 @@ export function Dashboard() {
                       {m.producto?.nombre ?? 'Producto'}
                     </div>
                     <div className="text-xs text-[var(--muted)] pt-0.5">
-                      {m.producto?.codigo ?? `ID ${m.productoId}`} · {new Date(m.fecha).toLocaleString('es-AR')}
+                      {m.producto?.codigo ?? `ID ${m.productoId}`} · {new Date(m.fecha).toLocaleString('es-CL')}
                     </div>
                   </div>
                 </div>
