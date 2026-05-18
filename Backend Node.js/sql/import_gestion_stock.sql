@@ -47,11 +47,13 @@ CREATE TABLE `products` (
   `stock` INT NOT NULL DEFAULT 0,
   `minimo` INT NOT NULL DEFAULT 0,
   `fechaIngreso` DATETIME NULL,
+  `activo` TINYINT NOT NULL DEFAULT 1,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_products_codigo` (`codigo`),
   KEY `idx_products_categoriaId` (`categoriaId`),
+  KEY `idx_products_activo` (`activo`),
   CONSTRAINT `fk_products_categoria`
     FOREIGN KEY (`categoriaId`) REFERENCES `categories` (`id`)
     ON DELETE RESTRICT
@@ -63,7 +65,9 @@ CREATE TABLE `sales` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `fecha` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `usuarioId` INT NOT NULL,
+  `metodoPago` ENUM('EFECTIVO', 'TARJETA', 'FACTURA') NOT NULL DEFAULT 'EFECTIVO',
   `nota` VARCHAR(255) NULL,
+  `otrosCargos` INT NOT NULL DEFAULT 0,
   `total` INT NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   KEY `idx_sales_fecha` (`fecha`),

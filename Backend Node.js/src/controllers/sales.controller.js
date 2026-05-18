@@ -1,12 +1,22 @@
 const { getPool } = require('../database/db')
-const { toInt, mysqlErrorMessage, normalizeSaleItems } = require('../utils')
+const { toInt, mysqlErrorMessage, normalizeSaleItems, isNonNegativeInt } = require('../utils')
+
+const ALLOWED_METODOS_PAGO = new Set(['EFECTIVO', 'TARJETA', 'FACTURA'])
 
 async function create(req, res) {
   const pool = getPool()
   if (!pool) return res.status(500).json({ ok: false, error: 'DB no configurada' })
   const note = String(req.body?.nota || '').trim()
+  const metodoPagoRaw = String(req.body?.metodoPago || 'EFECTIVO').trim().toUpperCase()
+  const otrosCargos = toInt(req.body?.otrosCargos) ?? 0
   const parsed = normalizeSaleItems(req.body?.items)
   if (!parsed.ok) return res.status(400).json({ ok: false, error: parsed.error })
+  if (!ALLOWED_METODOS_PAGO.has(metodoPagoRaw)) {
+    return res.status(400).json({ ok: false, error: 'metodoPago invalido' })
+  }
+  if (!isNonNegativeInt(otrosCargos)) {
+    return res.status(400).json({ ok: false, error: 'otrosCargos invalido' })
+  }
 
   const conn = await pool.getConnection()
   try {
@@ -89,10 +99,11 @@ async function create(req, res) {
     for (const p of products) {
       total += (qtyById.get(p.id) || 0) * p.precio
     }
+    total += otrosCargos
 
     const [saleResult] = await conn.query(
-      'INSERT INTO sales (fecha, usuarioId, nota, total) VALUES (?, ?, ?, ?)',
-      [fechaStr, req.auth.userId, note || null, total],
+      'INSERT INTO sales (fecha, usuarioId, metodoPago, nota, otrosCargos, total) VALUES (?, ?, ?, ?, ?, ?)',
+      [fechaStr, req.auth.userId, metodoPagoRaw, note || null, otrosCargos, total],
     )
     const saleId = saleResult.insertId
 
@@ -121,7 +132,16 @@ async function create(req, res) {
     }
 
     await conn.commit()
-    res.status(201).json({ ok: true, sale: { id: saleId, fecha: fechaStr, total } })
+    res.status(201).json({
+      ok: true,
+      sale: {
+        id: saleId,
+        fecha: fechaStr,
+        metodoPago: metodoPagoRaw,
+        otrosCargos,
+        total,
+      },
+    })
   } catch (err) {
     try { await conn.rollback() } catch { }
     res.status(500).json({ ok: false, error: mysqlErrorMessage(err) })
@@ -136,7 +156,8 @@ async function list(req, res) {
   const limit = Math.min(200, Math.max(1, toInt(req.query.limit) || 50))
   try {
     const [rows] = await pool.query(
-      `SELECT s.id, s.fecha, s.usuarioId, u.nombre AS usuarioNombre, u.rol AS usuarioRol, s.nota, s.total
+      `SELECT s.id, s.fecha, s.usuarioId, u.nombre AS usuarioNombre, u.rol AS usuarioRol,
+              s.metodoPago, s.nota, s.otrosCargos, s.total
        FROM sales s
        JOIN users u ON u.id = s.usuarioId
        ORDER BY s.id DESC

@@ -7,7 +7,7 @@ async function list(req, res) {
   const q = String(req.query.query || '').trim()
   const categoriaId = String(req.query.categoriaId || '').trim()
   try {
-    const where = []
+    const where = ['p.activo = 1']
     const params = []
 
     if (q) {
@@ -46,7 +46,7 @@ async function getByCodigo(req, res) {
               p.precio, p.stock, p.minimo, p.fechaIngreso
        FROM products p
        JOIN categories c ON c.id = p.categoriaId
-       WHERE p.codigo = ?
+       WHERE p.codigo = ? AND p.activo = 1
        LIMIT 1`,
       [codigo],
     )
@@ -86,6 +86,37 @@ async function create(req, res) {
     const [cats] = await pool.query('SELECT id FROM categories WHERE id = ? LIMIT 1', [categoriaId])
     if (!cats || cats.length === 0) {
       return res.status(400).json({ ok: false, error: 'categoria no existe' })
+    }
+
+    // Si existe el codigo pero esta inactivo, lo reactivamos en lugar de insertar.
+    const [existing] = await pool.query('SELECT id, activo FROM products WHERE codigo = ? LIMIT 1', [codigo])
+    if (existing && existing.length) {
+      if (Number(existing[0].activo) === 0) {
+        await pool.query(
+          'UPDATE products SET activo = 1, nombre = ?, categoriaId = ?, precio = ?, stock = ?, minimo = ?, fechaIngreso = ? WHERE id = ?',
+          [
+            nombre,
+            categoriaId,
+            precio ?? 0,
+            stock ?? 0,
+            minimo ?? 0,
+            fechaIngreso ? fechaIngreso.toISOString().slice(0, 19).replace('T', ' ') : null,
+            existing[0].id,
+          ],
+        )
+
+        const [rows] = await pool.query(
+          `SELECT p.id, p.codigo, p.nombre, p.categoriaId, c.nombre AS categoria,
+                  p.precio, p.stock, p.minimo, p.fechaIngreso
+           FROM products p
+           JOIN categories c ON c.id = p.categoriaId
+           WHERE p.id = ? AND p.activo = 1
+           LIMIT 1`,
+          [existing[0].id],
+        )
+        return res.status(201).json({ ok: true, product: rows[0], reactivated: true })
+      }
+      return res.status(409).json({ ok: false, error: 'Codigo ya existe' })
     }
 
     const [result] = await pool.query(
@@ -152,7 +183,7 @@ async function update(req, res) {
   }
 
   try {
-    const [existingRows] = await pool.query('SELECT id FROM products WHERE id = ? LIMIT 1', [id])
+    const [existingRows] = await pool.query('SELECT id FROM products WHERE id = ? AND activo = 1 LIMIT 1', [id])
     if (!existingRows || existingRows.length === 0) {
       return res.status(404).json({ ok: false, error: 'Producto no encontrado' })
     }
@@ -184,16 +215,16 @@ async function update(req, res) {
     params.push(id)
     await pool.query(`UPDATE products SET ${fields.join(', ')} WHERE id = ?`, params)
 
-    const [rows] = await pool.query(
-      `SELECT p.id, p.codigo, p.nombre, p.categoriaId, c.nombre AS categoria,
-              p.precio, p.stock, p.minimo, p.fechaIngreso
-       FROM products p
-       JOIN categories c ON c.id = p.categoriaId
-       WHERE p.id = ?
-       LIMIT 1`,
-      [id],
-    )
-    res.json({ ok: true, product: rows[0] })
+     const [rows] = await pool.query(
+       `SELECT p.id, p.codigo, p.nombre, p.categoriaId, c.nombre AS categoria,
+               p.precio, p.stock, p.minimo, p.fechaIngreso
+        FROM products p
+        JOIN categories c ON c.id = p.categoriaId
+        WHERE p.id = ? AND p.activo = 1
+        LIMIT 1`,
+       [id],
+     )
+     res.json({ ok: true, product: rows[0] })
   } catch (err) {
     res.status(500).json({ ok: false, error: mysqlErrorMessage(err) })
   }
@@ -205,7 +236,8 @@ async function remove(req, res) {
   const id = toInt(req.params.id)
   if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ ok: false, error: 'id invalido' })
   try {
-    const [result] = await pool.query('DELETE FROM products WHERE id = ? LIMIT 1', [id])
+    // Soft delete: el producto puede estar referenciado por movimientos/ventas.
+    const [result] = await pool.query('UPDATE products SET activo = 0 WHERE id = ? AND activo = 1', [id])
     if (result.affectedRows === 0) return res.status(404).json({ ok: false, error: 'Producto no encontrado' })
     res.json({ ok: true })
   } catch (err) {

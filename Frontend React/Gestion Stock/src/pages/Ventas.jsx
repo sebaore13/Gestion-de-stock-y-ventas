@@ -5,6 +5,7 @@ import { api } from '../services/api'
 import { Badge } from '../components/atoms/Badge'
 import { Button } from '../components/atoms/Button'
 import { Card, CardBody, CardHeader } from '../components/atoms/Card'
+import { Input } from '../components/atoms/Input'
 import { Modal } from '../components/atoms/Modal'
 import { Select } from '../components/atoms/Select'
 import { Subtle, Title } from '../components/atoms/Title'
@@ -29,6 +30,8 @@ function VentasPage() {
   const [categories, setCategories] = useState([])
   const [searching, setSearching] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [metodoPago, setMetodoPago] = useState('EFECTIVO')
+  const [otrosCargos, setOtrosCargos] = useState(0)
 
   useEffect(() => {
     api.get('/categories').then((res) => setCategories(res.categories)).catch(() => {})
@@ -68,9 +71,11 @@ function VentasPage() {
   const totals = useMemo(() => {
     const unique = cart.length
     const items = cart.reduce((acc, row) => acc + row.qty, 0)
-    const total = cart.reduce((acc, row) => acc + row.qty * row.product.precio, 0)
-    return { unique, items, total }
-  }, [cart])
+    const subtotal = cart.reduce((acc, row) => acc + row.qty * row.product.precio, 0)
+    const extras = Number.isFinite(otrosCargos) ? Math.max(0, Math.trunc(otrosCargos)) : 0
+    const total = subtotal + extras
+    return { unique, items, subtotal, extras, total }
+  }, [cart, otrosCargos])
 
   function add(product) {
     const existing = ventaItems.find((i) => i.productoId === product.id)
@@ -98,9 +103,11 @@ function VentasPage() {
     if (items.length === 0) return
     setSubmitting(true)
     try {
-      await api.post('/sales', { items })
+      await api.post('/sales', { items, metodoPago, otrosCargos: totals.extras })
       clearVenta()
       setConfirmOpen(false)
+      setOtrosCargos(0)
+      setMetodoPago('EFECTIVO')
       toast.success('Venta registrada', { description: `Se vendieron ${totals.items} items` })
     } catch (err) {
       if (err.status === 409) {
@@ -245,9 +252,33 @@ function VentasPage() {
               <span className="text-[var(--muted)]">Total items</span>
               <span className="text-zinc-100 font-medium">{totals.items}</span>
             </div>
-            <div className="flex items-center justify-between text-base pt-3">
-              <span className="text-zinc-200 font-semibold">Total</span>
-              <span className="text-zinc-100 font-semibold">{moneyCLP(totals.total)}</span>
+
+            <div className="pt-4 grid grid-cols-1 gap-2">
+              <div className="grid grid-cols-[1fr_140px] items-center gap-2">
+                <div className="text-sm text-[var(--muted)]">Metodo de pago</div>
+                <Select value={metodoPago} onChange={(e) => setMetodoPago(e.target.value)}>
+                  <option value="EFECTIVO">Efectivo</option>
+                  <option value="TARJETA">Tarjeta</option>
+                  <option value="FACTURA">Factura</option>
+                </Select>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-[var(--muted)]">Subtotal productos</span>
+                <span className="text-zinc-100 font-medium">{moneyCLP(totals.subtotal)}</span>
+              </div>
+              <div className="grid grid-cols-[1fr_140px] items-center gap-2">
+                <div className="text-sm text-[var(--muted)]">Otros cobros</div>
+                <Input
+                  value={otrosCargos}
+                  type="number"
+                  min={0}
+                  onChange={(e) => setOtrosCargos(Math.max(0, Math.trunc(Number(e.target.value) || 0)))}
+                />
+              </div>
+              <div className="flex items-center justify-between text-base pt-1">
+                <span className="text-zinc-200 font-semibold">Total</span>
+                <span className="text-zinc-100 font-semibold">{moneyCLP(totals.total)}</span>
+              </div>
             </div>
 
             <div className="pt-4 flex gap-2">
@@ -266,6 +297,21 @@ function VentasPage() {
         <div className="space-y-3">
           <Title as="h2" className="text-lg">Confirmacion</Title>
           <Subtle>Confirma la venta de {totals.items} items por {moneyCLP(totals.total)}.</Subtle>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <div className="text-xs text-zinc-400">Metodo de pago</div>
+              <Select value={metodoPago} onChange={(e) => setMetodoPago(e.target.value)}>
+                <option value="EFECTIVO">Efectivo</option>
+                <option value="TARJETA">Tarjeta</option>
+                <option value="FACTURA">Factura</option>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <div className="text-xs text-zinc-400">Otros cobros</div>
+              <Input value={otrosCargos} type="number" min={0} onChange={(e) => setOtrosCargos(Math.max(0, Math.trunc(Number(e.target.value) || 0)))} />
+            </div>
+          </div>
           <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-white/3 p-4">
             <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Total</div>
             <div className="pt-2 text-base font-semibold text-zinc-100">{moneyCLP(totals.total)}</div>
