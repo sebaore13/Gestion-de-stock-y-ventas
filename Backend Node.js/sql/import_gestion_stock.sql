@@ -24,6 +24,10 @@ CREATE TABLE `users` (
   `email` VARCHAR(190) NOT NULL,
   `rol` ENUM('Administrador', 'Vendedor') NOT NULL DEFAULT 'Vendedor',
   `passwordHash` VARCHAR(255) NULL,
+  `activo` TINYINT NOT NULL DEFAULT 1,
+  `last_login_at` DATETIME NULL,
+  `failed_attempts` INT NOT NULL DEFAULT 0,
+  `locked_until` DATETIME NULL,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_users_email` (`email`)
@@ -123,9 +127,12 @@ CREATE TABLE `movements` (
 
 -- === SEED ===
 
-INSERT INTO `users` (`nombre`, `email`, `rol`, `passwordHash`) VALUES
-  ('Admin', 'admin@taller.local', 'Administrador', NULL),
-  ('Vendedor', 'venta@taller.local', 'Vendedor', NULL);
+-- Passwords demo (cambiar en produccion):
+-- admin@taller.local -> Admin1234!
+-- venta@taller.local -> Venta1234!
+INSERT INTO `users` (`nombre`, `email`, `rol`, `passwordHash`, `activo`) VALUES
+  ('Admin', 'admin@taller.local', 'Administrador', '$2b$10$y6c1DNxFP5GWoz9MD.o2ZOGYAaMBd5z5BeLotYt9I3Mt7QtkL2lmS', 1),
+  ('Vendedor', 'venta@taller.local', 'Vendedor', '$2b$10$YkeUoUhARV3sPIQrN68XTOKqJeE9BLz/Fhr5iGGY7D7TF1ZzWDjLG', 1);
 
 INSERT INTO `categories` (`nombre`) VALUES
   ('Lubricantes'),

@@ -7,7 +7,9 @@ const config = {
   dbName: process.env.DB_NAME || 'gestion_stock',
   frontendOrigin: process.env.FRONTEND_ORIGIN || 'http://localhost:5173',
   jwtSecret: process.env.JWT_SECRET,
-  jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN || '3h',
+  bcryptRounds: Number(process.env.BCRYPT_ROUNDS || 10),
+  bootstrapPassword: process.env.BOOTSTRAP_PASSWORD || null,
 }
 
 module.exports = config

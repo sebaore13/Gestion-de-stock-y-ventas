@@ -9,6 +9,7 @@ import { Toaster } from '../components/organisms/Toaster'
 
 export function Login() {
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const login = useAuthStore((s) => s.login)
@@ -18,10 +19,11 @@ export function Login() {
     e.preventDefault()
     const val = email.trim()
     if (!val) return
+    if (!password) return
     setLoading(true)
     setError('')
     try {
-      await login(val)
+      await login(val, password)
       navigate('/', { replace: true })
     } catch (err) {
       const msg = err.message || 'Error de conexion (backend caido?)'
@@ -52,6 +54,15 @@ export function Login() {
                 autoFocus
               />
             </div>
+            <div className="space-y-1">
+              <div className="text-xs text-zinc-400">Password</div>
+              <Input
+                value={password}
+                onChange={(e) => { setPassword(e.target.value); setError('') }}
+                type="password"
+                placeholder="••••••••"
+              />
+            </div>
             {error ? (
               <div className="text-xs text-red-400 bg-red-400/10 rounded-xl px-3 py-2">{error}</div>
             ) : null}
@@ -59,7 +70,7 @@ export function Login() {
               {loading ? 'Ingresando...' : 'Ingresar'}
             </Button>
             <div className="text-xs text-[var(--muted)] text-center space-y-1">
-              <div>Demo: <span className="text-zinc-300">admin@taller.local</span> / <span className="text-zinc-300">venta@taller.local</span></div>
+              <div>Demo: <span className="text-zinc-300">admin@taller.local</span> (Admin1234!) / <span className="text-zinc-300">venta@taller.local</span> (Venta1234!)</div>
               <div className="pt-1">Backend requiere Node.js en <span className="text-zinc-300">localhost:3001</span></div>
             </div>
           </form>

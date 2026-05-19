@@ -7,8 +7,8 @@ export const useAuthStore = create((set) => ({
   isAuthenticated: false,
   loading: true,
 
-  login: async (email) => {
-    const res = await api.post('/auth/login', { email })
+  login: async (email, password) => {
+    const res = await api.post('/auth/login', { email, password })
     localStorage.setItem('token', res.token)
     set({ user: res.user, token: res.token, isAuthenticated: true, loading: false })
     return res

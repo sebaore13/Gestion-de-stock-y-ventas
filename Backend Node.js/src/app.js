@@ -8,6 +8,7 @@ const productRoutes = require('./routes/products.routes')
 const saleRoutes = require('./routes/sales.routes')
 const movementRoutes = require('./routes/movements.routes')
 const healthRoutes = require('./routes/health.routes')
+const userRoutes = require('./routes/users.routes')
 
 function createApp() {
   const app = express()
@@ -20,6 +21,7 @@ function createApp() {
   app.use(productRoutes)
   app.use(saleRoutes)
   app.use(movementRoutes)
+  app.use(userRoutes)
   app.use(healthRoutes)
 
   app.use((req, res) => {

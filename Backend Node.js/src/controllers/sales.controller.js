@@ -154,15 +154,46 @@ async function list(req, res) {
   const pool = getPool()
   if (!pool) return res.status(500).json({ ok: false, error: 'DB no configurada' })
   const limit = Math.min(200, Math.max(1, toInt(req.query.limit) || 50))
+  const from = String(req.query.from || '').trim()
+  const to = String(req.query.to || '').trim()
+  let usuarioId = req.query.usuarioId !== undefined ? toInt(req.query.usuarioId) : null
+
+  const isDateOnly = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s)
+  if (from && !isDateOnly(from)) return res.status(400).json({ ok: false, error: 'from invalido (YYYY-MM-DD)' })
+  if (to && !isDateOnly(to)) return res.status(400).json({ ok: false, error: 'to invalido (YYYY-MM-DD)' })
+  if (usuarioId !== null && (!Number.isInteger(usuarioId) || usuarioId <= 0)) {
+    return res.status(400).json({ ok: false, error: 'usuarioId invalido' })
+  }
+
+  if (req.auth?.rol !== 'Administrador') {
+    if (usuarioId === null) usuarioId = req.auth.userId
+    if (usuarioId !== req.auth.userId) return res.status(403).json({ ok: false, error: 'Prohibido' })
+  }
   try {
+    const where = []
+    const params = []
+    if (from) {
+      where.push('DATE(s.fecha) >= ?')
+      params.push(from)
+    }
+    if (to) {
+      where.push('DATE(s.fecha) <= ?')
+      params.push(to)
+    }
+    if (usuarioId) {
+      where.push('s.usuarioId = ?')
+      params.push(usuarioId)
+    }
+
     const [rows] = await pool.query(
       `SELECT s.id, s.fecha, s.usuarioId, u.nombre AS usuarioNombre, u.rol AS usuarioRol,
               s.metodoPago, s.nota, s.otrosCargos, s.total
        FROM sales s
        JOIN users u ON u.id = s.usuarioId
+       ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
        ORDER BY s.id DESC
        LIMIT ?`,
-      [limit],
+      [...params, limit],
     )
     res.json({ ok: true, sales: rows })
   } catch (err) {

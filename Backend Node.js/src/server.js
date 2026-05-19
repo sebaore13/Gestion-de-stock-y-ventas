@@ -35,6 +35,20 @@ async function ensureSchema() {
   if (!(await hasColumn('sales', 'otrosCargos'))) {
     await pool.query('ALTER TABLE sales ADD COLUMN otrosCargos INT NOT NULL DEFAULT 0')
   }
+
+  if (!(await hasColumn('users', 'activo'))) {
+    await pool.query('ALTER TABLE users ADD COLUMN activo TINYINT NOT NULL DEFAULT 1')
+    await pool.query('CREATE INDEX idx_users_activo ON users (activo)')
+  }
+  if (!(await hasColumn('users', 'last_login_at'))) {
+    await pool.query('ALTER TABLE users ADD COLUMN last_login_at DATETIME NULL')
+  }
+  if (!(await hasColumn('users', 'failed_attempts'))) {
+    await pool.query('ALTER TABLE users ADD COLUMN failed_attempts INT NOT NULL DEFAULT 0')
+  }
+  if (!(await hasColumn('users', 'locked_until'))) {
+    await pool.query('ALTER TABLE users ADD COLUMN locked_until DATETIME NULL')
+  }
 }
 
 let server

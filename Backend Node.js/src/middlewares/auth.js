@@ -15,6 +15,12 @@ function signToken({ userId, rol }) {
   return jwt.sign({ sub: String(userId), rol }, secret, { expiresIn: config.jwtExpiresIn })
 }
 
+function decodeToken(token) {
+  const secret = config.jwtSecret
+  if (!secret) throw new Error('JWT_SECRET no configurado')
+  return jwt.verify(token, secret)
+}
+
 function requireAuth() {
   const secret = config.jwtSecret
   if (!secret) throw new Error('JWT_SECRET no configurado')
@@ -41,4 +47,4 @@ function requireRole(roles) {
   }
 }
 
-module.exports = { signToken, requireAuth, requireRole }
+module.exports = { signToken, decodeToken, requireAuth, requireRole }
