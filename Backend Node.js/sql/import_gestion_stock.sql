@@ -111,6 +111,8 @@ CREATE TABLE `movements` (
   `cantidad` INT NOT NULL,
   `fecha` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `usuarioId` INT NOT NULL,
+  `motivo` VARCHAR(120) NULL,
+  `nota` VARCHAR(255) NULL,
   PRIMARY KEY (`id`),
   KEY `idx_movements_fecha` (`fecha`),
   KEY `idx_movements_productoId` (`productoId`),

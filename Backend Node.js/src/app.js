@@ -1,6 +1,9 @@
 const express = require('express')
 const cors = require('cors')
+const helmet = require('helmet')
 const config = require('./config')
+
+const { requestIdMiddleware, errorHandler } = require('./middlewares/requestContext')
 
 const authRoutes = require('./routes/auth.routes')
 const categoryRoutes = require('./routes/categories.routes')
@@ -13,8 +16,34 @@ const userRoutes = require('./routes/users.routes')
 function createApp() {
   const app = express()
 
-  app.use(cors({ origin: config.frontendOrigin || true, credentials: true }))
-  app.use(express.json({ limit: '1mb' }))
+  app.disable('x-powered-by')
+
+  app.use(requestIdMiddleware())
+
+  app.use(helmet({
+    // Keep defaults; can be tuned once behind HTTPS / reverse proxy.
+    crossOriginResourcePolicy: false,
+  }))
+
+  const origins = String(config.frontendOrigins || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  const originSet = new Set(origins)
+
+  app.use(cors({
+    origin: (origin, cb) => {
+      // Non-browser clients (curl, server-to-server) usually send no Origin.
+      if (!origin) return cb(null, true)
+      if (originSet.has(origin)) return cb(null, true)
+      const err = new Error('CORS: origen no permitido')
+      err.status = 403
+      return cb(err)
+    },
+    credentials: true,
+  }))
+
+  app.use(express.json({ limit: config.bodyLimit }))
 
   app.use(authRoutes)
   app.use(categoryRoutes)
@@ -27,6 +56,8 @@ function createApp() {
   app.use((req, res) => {
     res.status(404).json({ ok: false, error: 'Not found' })
   })
+
+  app.use(errorHandler())
 
   return app
 }

@@ -1,0 +1,6 @@
+ALTER TABLE users ADD COLUMN activo TINYINT NOT NULL DEFAULT 1;
+CREATE INDEX idx_users_activo ON users (activo);
+
+ALTER TABLE users ADD COLUMN last_login_at DATETIME NULL;
+ALTER TABLE users ADD COLUMN failed_attempts INT NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN locked_until DATETIME NULL;

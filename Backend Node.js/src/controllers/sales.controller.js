@@ -153,21 +153,22 @@ async function create(req, res) {
 async function list(req, res) {
   const pool = getPool()
   if (!pool) return res.status(500).json({ ok: false, error: 'DB no configurada' })
+  const isAdmin = req.auth?.rol === 'Administrador'
   const limit = Math.min(200, Math.max(1, toInt(req.query.limit) || 50))
   const from = String(req.query.from || '').trim()
   const to = String(req.query.to || '').trim()
-  let usuarioId = req.query.usuarioId !== undefined ? toInt(req.query.usuarioId) : null
+  let usuarioId = isAdmin && req.query.usuarioId !== undefined ? toInt(req.query.usuarioId) : null
 
   const isDateOnly = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s)
   if (from && !isDateOnly(from)) return res.status(400).json({ ok: false, error: 'from invalido (YYYY-MM-DD)' })
   if (to && !isDateOnly(to)) return res.status(400).json({ ok: false, error: 'to invalido (YYYY-MM-DD)' })
-  if (usuarioId !== null && (!Number.isInteger(usuarioId) || usuarioId <= 0)) {
+  if (isAdmin && usuarioId !== null && (!Number.isInteger(usuarioId) || usuarioId <= 0)) {
     return res.status(400).json({ ok: false, error: 'usuarioId invalido' })
   }
 
-  if (req.auth?.rol !== 'Administrador') {
-    if (usuarioId === null) usuarioId = req.auth.userId
-    if (usuarioId !== req.auth.userId) return res.status(403).json({ ok: false, error: 'Prohibido' })
+  if (!isAdmin) {
+    // Vendedor: siempre se forza el propio usuarioId (se ignora cualquier usuarioId en query)
+    usuarioId = req.auth.userId
   }
   try {
     const where = []
@@ -201,4 +202,42 @@ async function list(req, res) {
   }
 }
 
-module.exports = { create, list }
+async function getById(req, res) {
+  const pool = getPool()
+  if (!pool) return res.status(500).json({ ok: false, error: 'DB no configurada' })
+  const isAdmin = req.auth?.rol === 'Administrador'
+  const id = toInt(req.params.id)
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ ok: false, error: 'id invalido' })
+
+  try {
+    const [saleRows] = await pool.query(
+      `SELECT s.id, s.fecha, s.usuarioId, u.nombre AS usuarioNombre, u.rol AS usuarioRol,
+              s.metodoPago, s.nota, s.otrosCargos, s.total
+       FROM sales s
+       JOIN users u ON u.id = s.usuarioId
+       WHERE s.id = ?
+       LIMIT 1`,
+      [id],
+    )
+    if (!saleRows || saleRows.length === 0) return res.status(404).json({ ok: false, error: 'Venta no encontrada' })
+    const sale = saleRows[0]
+
+    if (!isAdmin && Number(sale.usuarioId) !== Number(req.auth.userId)) {
+      return res.status(403).json({ ok: false, error: 'Prohibido' })
+    }
+
+    const [itemRows] = await pool.query(
+      `SELECT id, saleId, productoId, codigo_snapshot, nombre_snapshot, precio_snapshot, cantidad
+       FROM sale_items
+       WHERE saleId = ?
+       ORDER BY id ASC`,
+      [id],
+    )
+
+    res.json({ ok: true, sale, items: itemRows })
+  } catch (err) {
+    res.status(500).json({ ok: false, error: mysqlErrorMessage(err) })
+  }
+}
+
+module.exports = { create, list, getById }
