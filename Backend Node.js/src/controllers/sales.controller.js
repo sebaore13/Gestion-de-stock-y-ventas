@@ -17,6 +17,9 @@ async function create(req, res) {
   if (!isNonNegativeInt(otrosCargos)) {
     return res.status(400).json({ ok: false, error: 'otrosCargos invalido' })
   }
+  if (note && note.length > 255) {
+    return res.status(400).json({ ok: false, error: 'nota demasiado larga (max 255)' })
+  }
 
   const conn = await pool.getConnection()
   try {
@@ -58,7 +61,7 @@ async function create(req, res) {
       `
       SELECT id, codigo, nombre, precio, stock
       FROM products
-      WHERE id IN (${productIds.map(() => '?').join(',')})
+      WHERE id IN (${productIds.map(() => '?').join(',')}) AND activo = 1
       ORDER BY id ASC
       FOR UPDATE
       `,
@@ -67,7 +70,7 @@ async function create(req, res) {
 
     if (products.length !== productIds.length) {
       await conn.rollback()
-      return res.status(400).json({ ok: false, error: 'Producto no encontrado' })
+      return res.status(400).json({ ok: false, error: 'Producto no encontrado o desactivado' })
     }
 
     const insufficient = []

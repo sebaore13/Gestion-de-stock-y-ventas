@@ -22,9 +22,11 @@ function decodeToken(token) {
 }
 
 function requireAuth() {
-  const secret = config.jwtSecret
-  if (!secret) throw new Error('JWT_SECRET no configurado')
   return (req, res, next) => {
+    const secret = config.jwtSecret
+    if (!secret) {
+      return res.status(500).json({ ok: false, error: 'Error de configuracion del servidor' })
+    }
     const token = getTokenFromRequest(req)
     if (!token) return res.status(401).json({ ok: false, error: 'No autorizado' })
     try {

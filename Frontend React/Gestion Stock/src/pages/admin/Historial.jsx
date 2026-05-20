@@ -29,6 +29,7 @@ export function AdminHistorial() {
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [loading, setLoading] = useState(false)
+  const [loadError, setLoadError] = useState('')
 
   function ymdLocal(d) {
     const y = d.getFullYear()
@@ -76,9 +77,11 @@ export function AdminHistorial() {
       ])
       setMovements(m.movements || [])
       setSales(s.sales || [])
-    } catch {
+      setLoadError('')
+    } catch (err) {
       setMovements([])
       setSales([])
+      setLoadError(err?.message || 'Error de conexion con el servidor')
     } finally {
       setLoading(false)
     }
@@ -210,6 +213,9 @@ export function AdminHistorial() {
           </div>
         </CardHeader>
         <CardBody>
+          {loadError ? (
+            <div className="mb-4 rounded-xl bg-red-400/10 text-red-300 text-xs px-3 py-2">{loadError}</div>
+          ) : null}
           <div className="print-only rounded-2xl border border-[rgba(0,0,0,0.12)] bg-white px-4 py-4">
             <div className="text-sm font-semibold">Reporte</div>
             <div className="text-xs text-zinc-600 pt-1">

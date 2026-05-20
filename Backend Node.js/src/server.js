@@ -4,23 +4,40 @@ const config = require('./config')
 const { createPoolFromEnv, setPool } = require('./database/db')
 const { createApp } = require('./app')
 
+const REQUIRED_ENV = {
+  jwtSecret: 'JWT_SECRET',
+  dbHost: 'DB_HOST',
+  dbUser: 'DB_USER',
+  dbName: 'DB_NAME',
+}
+
+for (const [key, envVar] of Object.entries(REQUIRED_ENV)) {
+  if (!config[key] || (typeof config[key] === 'string' && !config[key].trim())) {
+    console.error(`[backend] FATAL: ${envVar} no esta configurado en .env o variables de entorno`)
+    process.exit(1)
+  }
+}
+
 const pool = createPoolFromEnv(config)
 setPool(pool)
 
 const app = createApp()
 
-let server
+app.listen(config.port, () => {
+  console.log(`[backend] listening on port ${config.port}`)
+})
 
-server = app.listen(config.port, () => {
-  console.log(`[backend] listening on http://localhost:${config.port}`)
+process.on('unhandledRejection', (reason) => {
+  console.error('[backend] unhandled rejection:', reason?.message || reason)
+})
+
+process.on('uncaughtException', (err) => {
+  console.error('[backend] uncaught exception:', err?.message || err)
+  process.exit(1)
 })
 
 process.on('SIGINT', async () => {
-  if (server) {
-    server.close(() => {
-      console.log('[backend] server closed')
-    })
-  }
+  console.log('[backend] shutting down...')
   try {
     await pool.end()
   } catch {

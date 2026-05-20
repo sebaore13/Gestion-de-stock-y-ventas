@@ -13,9 +13,17 @@ function formatDate(iso) {
 export function Historial() {
   const [q, setQ] = useState('')
   const [movements, setMovements] = useState([])
+  const [loadError, setLoadError] = useState('')
 
   useEffect(() => {
-    api.get('/movements?limit=200').then((res) => setMovements(res.movements || [])).catch(() => {})
+    api.get('/movements?limit=200')
+      .then((res) => {
+        setMovements(res.movements || [])
+        setLoadError('')
+      })
+      .catch((err) => {
+        setLoadError(err?.message || 'Error de conexion con el servidor')
+      })
   }, [])
 
   const rows = useMemo(() => {
@@ -39,6 +47,9 @@ export function Historial() {
         <Badge variant="neutral">{rows.length}</Badge>
       </CardHeader>
       <CardBody>
+        {loadError ? (
+          <div className="mb-4 rounded-xl bg-red-400/10 text-red-300 text-xs px-3 py-2">{loadError}</div>
+        ) : null}
         <div className="pb-4">
           <SearchBar value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar movimientos..." />
         </div>

@@ -5,6 +5,7 @@ import {
   Boxes,
   ShoppingCart,
   History,
+  Tags,
   Users,
   Settings,
   ChevronsLeft,
@@ -27,6 +28,7 @@ const NAV_VENDEDOR = [
 const NAV_ADMIN = [
   { key: 'admin', label: 'Dashboard', icon: LayoutDashboard, to: '/admin', end: true },
   { key: 'admin-productos', label: 'Productos', icon: Boxes, to: '/admin/productos' },
+  { key: 'admin-categorias', label: 'Categorias', icon: Tags, to: '/admin/categorias' },
   { key: 'admin-usuarios', label: 'Usuarios', icon: Users, to: '/admin/usuarios' },
   { key: 'admin-historial', label: 'Historial', icon: History, to: '/admin/historial' },
   { key: 'admin-crear-historial', label: 'Crear historial', icon: History, to: '/admin/historial/nuevo' },

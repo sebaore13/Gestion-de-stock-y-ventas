@@ -18,6 +18,9 @@ function createApp() {
 
   app.disable('x-powered-by')
 
+  // Trust proxy (Apache/Nginx reverso en hosting)
+  app.set('trust proxy', 1)
+
   app.use(requestIdMiddleware())
 
   app.use(helmet({

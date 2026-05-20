@@ -31,24 +31,7 @@ async function login(req, res) {
       }
     }
     if (!user.passwordHash) {
-      // Bootstrap for existing DBs: allow setting initial password if BOOTSTRAP_PASSWORD is configured.
-      if (!config.bootstrapPassword || password !== config.bootstrapPassword) {
-        return res.status(403).json({ ok: false, error: 'Usuario sin password configurado' })
-      }
-      const hash = await bcrypt.hash(password, config.bcryptRounds)
-      const nowStr = new Date().toISOString().slice(0, 19).replace('T', ' ')
-      await pool.query(
-        'UPDATE users SET passwordHash = ?, failed_attempts = 0, locked_until = NULL, last_login_at = ? WHERE id = ? LIMIT 1',
-        [hash, nowStr, user.id],
-      )
-      const token = signToken({ userId: user.id, rol: user.rol })
-      return res.json({
-        ok: true,
-        token,
-        user: { id: user.id, nombre: user.nombre, email: user.email, rol: user.rol },
-        expiresIn: config.jwtExpiresIn,
-        bootstrap: true,
-      })
+      return res.status(403).json({ ok: false, error: 'Usuario sin password configurado. Contacta al administrador.' })
     }
 
     const ok = await bcrypt.compare(password, user.passwordHash)

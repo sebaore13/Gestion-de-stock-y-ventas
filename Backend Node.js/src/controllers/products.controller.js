@@ -5,7 +5,7 @@ async function list(req, res) {
   const pool = getPool()
   if (!pool) return res.status(500).json({ ok: false, error: 'DB no configurada' })
   const q = String(req.query.query || '').trim()
-  const categoriaId = String(req.query.categoriaId || '').trim()
+  const categoriaId = toInt(req.query.categoriaId)
   try {
     const where = ['p.activo = 1']
     const params = []
@@ -14,9 +14,9 @@ async function list(req, res) {
       where.push('(p.codigo LIKE ? OR p.nombre LIKE ?)')
       params.push(`%${q}%`, `%${q}%`)
     }
-    if (categoriaId) {
+    if (categoriaId !== null && Number.isInteger(categoriaId) && categoriaId > 0) {
       where.push('p.categoriaId = ?')
-      params.push(Number(categoriaId))
+      params.push(categoriaId)
     }
 
     const sql = `
@@ -82,17 +82,24 @@ async function create(req, res) {
     return res.status(400).json({ ok: false, error: 'fechaIngreso invalida' })
   }
 
+  const conn = await pool.getConnection()
   try {
-    const [cats] = await pool.query('SELECT id FROM categories WHERE id = ? LIMIT 1', [categoriaId])
+    await conn.beginTransaction()
+
+    const [cats] = await conn.query('SELECT id FROM categories WHERE id = ? LIMIT 1', [categoriaId])
     if (!cats || cats.length === 0) {
+      await conn.rollback()
       return res.status(400).json({ ok: false, error: 'categoria no existe' })
     }
 
-    // Si existe el codigo pero esta inactivo, lo reactivamos en lugar de insertar.
-    const [existing] = await pool.query('SELECT id, activo FROM products WHERE codigo = ? LIMIT 1', [codigo])
+    // Bloqueamos la fila para evitar race conditions en red
+    const [existing] = await conn.query(
+      'SELECT id, activo FROM products WHERE codigo = ? LIMIT 1 FOR UPDATE',
+      [codigo],
+    )
     if (existing && existing.length) {
       if (Number(existing[0].activo) === 0) {
-        await pool.query(
+        await conn.query(
           'UPDATE products SET activo = 1, nombre = ?, categoriaId = ?, precio = ?, stock = ?, minimo = ?, fechaIngreso = ? WHERE id = ?',
           [
             nombre,
@@ -105,7 +112,7 @@ async function create(req, res) {
           ],
         )
 
-        const [rows] = await pool.query(
+        const [rows] = await conn.query(
           `SELECT p.id, p.codigo, p.nombre, p.categoriaId, c.nombre AS categoria,
                   p.precio, p.stock, p.minimo, p.fechaIngreso
            FROM products p
@@ -114,12 +121,14 @@ async function create(req, res) {
            LIMIT 1`,
           [existing[0].id],
         )
+        await conn.commit()
         return res.status(201).json({ ok: true, product: rows[0], reactivated: true })
       }
+      await conn.rollback()
       return res.status(409).json({ ok: false, error: 'Codigo ya existe' })
     }
 
-    const [result] = await pool.query(
+    const [result] = await conn.query(
       'INSERT INTO products (codigo, nombre, categoriaId, precio, stock, minimo, fechaIngreso) VALUES (?, ?, ?, ?, ?, ?, ?)',
       [
         codigo,
@@ -132,7 +141,7 @@ async function create(req, res) {
       ],
     )
 
-    const [rows] = await pool.query(
+    const [rows] = await conn.query(
       `SELECT p.id, p.codigo, p.nombre, p.categoriaId, c.nombre AS categoria,
               p.precio, p.stock, p.minimo, p.fechaIngreso
        FROM products p
@@ -141,9 +150,13 @@ async function create(req, res) {
        LIMIT 1`,
       [result.insertId],
     )
+    await conn.commit()
     res.status(201).json({ ok: true, product: rows[0] })
   } catch (err) {
+    try { await conn.rollback() } catch { }
     res.status(500).json({ ok: false, error: mysqlErrorMessage(err) })
+  } finally {
+    conn.release()
   }
 }
 
@@ -191,6 +204,15 @@ async function update(req, res) {
       const [cats] = await pool.query('SELECT id FROM categories WHERE id = ? LIMIT 1', [patch.categoriaId])
       if (!cats || cats.length === 0) {
         return res.status(400).json({ ok: false, error: 'categoria no existe' })
+      }
+    }
+    if (patch.codigo !== undefined) {
+      const [dup] = await pool.query(
+        'SELECT id FROM products WHERE codigo = ? AND id != ? AND activo = 1 LIMIT 1',
+        [patch.codigo, id],
+      )
+      if (dup && dup.length) {
+        return res.status(409).json({ ok: false, error: 'Codigo ya existe en otro producto' })
       }
     }
 

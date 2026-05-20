@@ -44,21 +44,21 @@ async function create(req, res) {
 
     let pid = productoId
     if (!pid && codigo) {
-      const [rows] = await conn.query('SELECT id FROM products WHERE codigo = ? LIMIT 1', [codigo])
+      const [rows] = await conn.query('SELECT id FROM products WHERE codigo = ? AND activo = 1 LIMIT 1', [codigo])
       if (!rows || rows.length === 0) {
         await conn.rollback()
-        return res.status(400).json({ ok: false, error: 'Producto no encontrado' })
+        return res.status(400).json({ ok: false, error: 'Producto no encontrado o desactivado' })
       }
       pid = rows[0].id
     }
 
     const [products] = await conn.query(
-      'SELECT id, stock FROM products WHERE id = ? LIMIT 1 FOR UPDATE',
+      'SELECT id, stock FROM products WHERE id = ? AND activo = 1 LIMIT 1 FOR UPDATE',
       [pid],
     )
     if (!products || products.length === 0) {
       await conn.rollback()
-      return res.status(400).json({ ok: false, error: 'Producto no encontrado' })
+      return res.status(400).json({ ok: false, error: 'Producto no encontrado o desactivado' })
     }
     const currentStock = Number(products[0].stock) || 0
     const nextStock = currentStock + cantidad
@@ -70,23 +70,10 @@ async function create(req, res) {
     await conn.query('UPDATE products SET stock = ? WHERE id = ? LIMIT 1', [nextStock, pid])
 
     const fechaStr = new Date().toISOString().slice(0, 19).replace('T', ' ')
-    let result
-    try {
-      ;([result] = await conn.query(
-        'INSERT INTO movements (tipo, productoId, cantidad, fecha, usuarioId, motivo, nota) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [tipo, pid, cantidad, fechaStr, req.auth.userId, motivo || null, nota || null],
-      ))
-    } catch (err) {
-      // Compat: algunas DBs usan columna `notas`.
-      if (err?.code === 'ER_BAD_FIELD_ERROR') {
-        ;([result] = await conn.query(
-          'INSERT INTO movements (tipo, productoId, cantidad, fecha, usuarioId, motivo, notas) VALUES (?, ?, ?, ?, ?, ?, ?)',
-          [tipo, pid, cantidad, fechaStr, req.auth.userId, motivo || null, nota || null],
-        ))
-      } else {
-        throw err
-      }
-    }
+    const [result] = await conn.query(
+      'INSERT INTO movements (tipo, productoId, cantidad, fecha, usuarioId, motivo, nota) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [tipo, pid, cantidad, fechaStr, req.auth.userId, motivo || null, nota || null],
+    )
 
     await conn.commit()
     res.status(201).json({
@@ -159,52 +146,19 @@ async function list(req, res) {
       params.push(tipo)
     }
 
-    const baseSql =
-      `FROM movements m
+    const [rows] = await pool.query(
+      `SELECT m.id, m.tipo, m.cantidad, m.fecha, m.usuarioId, u.nombre AS usuarioNombre, u.rol AS usuarioRol,
+              m.productoId, p.codigo AS productoCodigo, p.nombre AS productoNombre,
+              m.motivo, m.nota
+       FROM movements m
        JOIN users u ON u.id = m.usuarioId
        JOIN products p ON p.id = m.productoId
        ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
        ORDER BY m.id DESC
-       LIMIT ?`
-
-    const sqlNota =
-      `SELECT m.id, m.tipo, m.cantidad, m.fecha, m.usuarioId, u.nombre AS usuarioNombre, u.rol AS usuarioRol,
-              m.productoId, p.codigo AS productoCodigo, p.nombre AS productoNombre,
-              m.motivo, m.nota
-       ${baseSql}`
-
-    const sqlNotas =
-      `SELECT m.id, m.tipo, m.cantidad, m.fecha, m.usuarioId, u.nombre AS usuarioNombre, u.rol AS usuarioRol,
-              m.productoId, p.codigo AS productoCodigo, p.nombre AS productoNombre,
-              m.motivo, m.notas AS nota
-       ${baseSql}`
-
-    const sqlNoNotes =
-      `SELECT m.id, m.tipo, m.cantidad, m.fecha, m.usuarioId, u.nombre AS usuarioNombre, u.rol AS usuarioRol,
-              m.productoId, p.codigo AS productoCodigo, p.nombre AS productoNombre,
-              NULL AS motivo, NULL AS nota
-       ${baseSql}`
-
-    try {
-      const [rows] = await pool.query(sqlNota, [...params, limit])
-      res.json({ ok: true, movements: rows })
-    } catch (err) {
-      if (err?.code === 'ER_BAD_FIELD_ERROR') {
-        try {
-          const [rows] = await pool.query(sqlNotas, [...params, limit])
-          res.json({ ok: true, movements: rows })
-          return
-        } catch (err2) {
-          if (err2?.code === 'ER_BAD_FIELD_ERROR') {
-            const [rows] = await pool.query(sqlNoNotes, [...params, limit])
-            res.json({ ok: true, movements: rows })
-            return
-          }
-          throw err2
-        }
-      }
-      throw err
-    }
+       LIMIT ?`,
+      [...params, limit],
+    )
+    res.json({ ok: true, movements: rows })
   } catch (err) {
     res.status(500).json({ ok: false, error: mysqlErrorMessage(err) })
   }
