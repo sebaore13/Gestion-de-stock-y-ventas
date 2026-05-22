@@ -2,7 +2,7 @@ import { motion } from 'framer-motion'
 import { cn } from '../../design/cn'
 import { motionTokens } from '../../design/motion'
 import { Badge } from '../atoms/Badge'
-import { moneyCLP } from '../../design/format'
+import { PriceBlock } from '../atoms/PriceBlock'
 
 export function ProductRow({ product, className }) {
   const low = product.stock <= product.min
@@ -26,12 +26,11 @@ export function ProductRow({ product, className }) {
             <span className="pt-0.5 sm:pt-0 text-xs font-mono text-zinc-400 truncate">{product.sku}</span>
           </div>
         </div>
-        <div className="pt-0.5 text-xs text-[var(--muted)]">
-          {moneyCLP(product.price)} · Min {product.min}
-        </div>
+        <div className="pt-0.5 text-xs text-[var(--muted)]">Min {product.min}</div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
+        <PriceBlock value={product.price} />
         {low ? <Badge variant="danger">Bajo</Badge> : <Badge variant="success">OK</Badge>}
         <Badge variant={low ? 'danger' : 'neutral'}>{product.stock}</Badge>
       </div>

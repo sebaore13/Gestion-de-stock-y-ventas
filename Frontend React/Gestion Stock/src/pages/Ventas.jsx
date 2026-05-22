@@ -9,6 +9,7 @@ import { Input } from '../components/atoms/Input'
 import { Modal } from '../components/atoms/Modal'
 import { Select } from '../components/atoms/Select'
 import { Subtle, Title } from '../components/atoms/Title'
+import { PriceBlock } from '../components/atoms/PriceBlock'
 import { SearchBar } from '../components/molecules/SearchBar'
 import { cn } from '../design/cn'
 import { moneyCLP } from '../design/format'
@@ -177,16 +178,17 @@ function VentasPage() {
                         'border-[rgba(255,255,255,0.06)] hover:bg-white/5',
                       )}
                     >
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-semibold text-zinc-100 truncate">{p.nombre}</div>
-                        <div className="text-xs text-[var(--muted)] pt-0.5">
-                          {p.codigo} · {moneyCLP(p.precio)}
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-semibold text-zinc-100 truncate">{p.nombre}</div>
+                          <div className="text-xs text-[var(--muted)] pt-0.5">
+                            {p.codigo} · {p.categoria}
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={isLow ? 'danger' : 'success'}>{isLow ? 'Bajo' : 'OK'}</Badge>
-                        <Badge variant={isLow ? 'danger' : 'neutral'}>{p.stock}</Badge>
-                      </div>
+                        <div className="flex items-center gap-3">
+                          <PriceBlock value={p.precio} />
+                          <Badge variant={isLow ? 'danger' : 'success'}>{isLow ? 'Bajo' : 'OK'}</Badge>
+                          <Badge variant={isLow ? 'danger' : 'neutral'}>{p.stock}</Badge>
+                        </div>
                     </div>
                   </button>
                 )
@@ -227,9 +229,10 @@ function VentasPage() {
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold text-zinc-100 truncate">{prod.nombre}</div>
                     <div className="text-xs text-[var(--muted)] pt-0.5">
-                      {prod.codigo} · {moneyCLP(prod.precio)}
+                      {prod.codigo}
                     </div>
                   </div>
+                  <PriceBlock value={prod.precio} className="shrink-0" />
                   <div className="flex items-center gap-2">
                     <Button variant="ghost" size="sm" onClick={() => dec(prod.id)}>-</Button>
                     <Badge variant="neutral">{item.cantidad}</Badge>

@@ -8,9 +8,9 @@ import { Subtle, Title } from '../components/atoms/Title'
 import { Card, CardBody, CardHeader } from '../components/atoms/Card'
 import { Input } from '../components/atoms/Input'
 import { Badge } from '../components/atoms/Badge'
+import { PriceBlock } from '../components/atoms/PriceBlock'
 import { ProductRow } from '../components/molecules/ProductRow'
 import { motionTokens } from '../design/motion'
-import { moneyCLP } from '../design/format'
 
 export function Dashboard() {
   const [codigo, setCodigo] = useState('')
@@ -128,7 +128,7 @@ export function Dashboard() {
                       <Badge variant={productoEncontrado.stock <= productoEncontrado.minimo ? 'danger' : 'success'}>
                         {productoEncontrado.stock <= productoEncontrado.minimo ? 'Stock Bajo' : 'OK'}
                       </Badge>
-                      <Badge variant="neutral">{moneyCLP(productoEncontrado.precio)}</Badge>
+                      <PriceBlock value={productoEncontrado.precio} />
                     </div>
                   </div>
                 </div>

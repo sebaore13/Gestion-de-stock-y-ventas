@@ -8,6 +8,7 @@ import { Button } from '../../components/atoms/Button'
 import { Input } from '../../components/atoms/Input'
 import { Select } from '../../components/atoms/Select'
 import { SearchBar } from '../../components/molecules/SearchBar'
+import { PriceBlock } from '../../components/atoms/PriceBlock'
 
 export function AdminProductos() {
   const [products, setProducts] = useState([])
@@ -175,13 +176,13 @@ export function AdminProductos() {
                   <div className="text-xs text-[var(--muted)] pt-1">
                     Ingreso: {p.fechaIngreso ? new Date(p.fechaIngreso).toLocaleDateString('es-CL') : 'N/A'}
                   </div>
-                  <div className="pt-2 flex items-center gap-2">
+                  <div className="pt-2 flex flex-wrap items-end gap-3">
+                    <PriceBlock value={p.precio} />
                     <Badge variant={p.stock <= p.minimo ? 'danger' : 'success'}>
                       {p.stock <= p.minimo ? 'Stock Bajo' : 'OK'}
                     </Badge>
                     <Badge variant="neutral">Stock {p.stock}</Badge>
                     <Badge variant="neutral">Min {p.minimo}</Badge>
-                    <Badge variant="neutral">$ {p.precio}</Badge>
                   </div>
                 </div>
 
