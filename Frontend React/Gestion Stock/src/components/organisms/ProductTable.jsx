@@ -1,18 +1,32 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Card, CardBody, CardHeader } from '../atoms/Card'
 import { Badge } from '../atoms/Badge'
 import { ProductRow } from '../molecules/ProductRow'
 import { SearchBar } from '../molecules/SearchBar'
 import { Select } from '../atoms/Select'
 
-export function ProductTable({ title = 'Inventario', subtitle = 'Lista de productos (mock).', products, query, onQueryChange }) {
+export function ProductTable({
+  title = 'Inventario',
+  subtitle = 'Lista de productos (mock).',
+  products,
+  query,
+  onQueryChange,
+  categoryOptions,
+}) {
   const [category, setCategory] = useState('Todas')
   const [stockFilter, setStockFilter] = useState('Todos')
 
   const categories = useMemo(() => {
-    const set = new Set(products.map((p) => p.category).filter(Boolean))
+    const names = Array.isArray(categoryOptions) && categoryOptions.length
+      ? categoryOptions
+      : products.map((p) => p.category).filter(Boolean)
+    const set = new Set(names)
     return ['Todas', ...Array.from(set).sort((a, b) => a.localeCompare(b))]
-  }, [products])
+  }, [products, categoryOptions])
+
+  useEffect(() => {
+    if (!categories.includes(category)) setCategory('Todas')
+  }, [categories, category])
 
   const filtered = useMemo(() => {
     const q = query?.trim().toLowerCase()

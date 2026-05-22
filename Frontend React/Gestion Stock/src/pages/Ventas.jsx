@@ -13,6 +13,7 @@ import { SearchBar } from '../components/molecules/SearchBar'
 import { cn } from '../design/cn'
 import { moneyCLP } from '../design/format'
 import { useAppStore } from '../store/useAppStore'
+import { useCatalogStore } from '../store/catalog.store'
 
 export function Ventas() {
   return <VentasPage />
@@ -27,15 +28,17 @@ function VentasPage() {
   const [categoria, setCategoria] = useState('')
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [results, setResults] = useState([])
-  const [categories, setCategories] = useState([])
   const [searching, setSearching] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [metodoPago, setMetodoPago] = useState('EFECTIVO')
   const [otrosCargos, setOtrosCargos] = useState(0)
 
+  const categories = useCatalogStore((s) => s.categories)
+  const loadCategories = useCatalogStore((s) => s.loadCategories)
+
   useEffect(() => {
-    api.get('/categories').then((res) => setCategories(res.categories)).catch(() => {})
-  }, [])
+    loadCategories()
+  }, [loadCategories])
 
   useEffect(() => {
     const q = query.trim()
@@ -61,7 +64,7 @@ function VentasPage() {
   }, [query, categoria])
 
   const cart = useMemo(() => {
-    const byId = new Map(results.concat(categories.length ? [] : []).map((p) => [p.id, p]))
+    const byId = new Map(results.map((p) => [p.id, p]))
     return ventaItems.map((i) => {
       const p = byId.get(i.productoId)
       return p ? { product: p, qty: i.cantidad } : null

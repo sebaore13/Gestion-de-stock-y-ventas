@@ -1,10 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../services/api'
 import { ProductTable } from '../components/organisms/ProductTable'
+import { useCatalogStore } from '../store/catalog.store'
 
 export function Inventario() {
   const [query, setQuery] = useState('')
   const [products, setProducts] = useState([])
+  const categories = useCatalogStore((s) => s.categories)
+  const loadCategories = useCatalogStore((s) => s.loadCategories)
+
+  useEffect(() => { loadCategories() }, [loadCategories])
 
   useEffect(() => {
     const params = new URLSearchParams()
@@ -32,6 +37,7 @@ export function Inventario() {
       title="Inventario"
       subtitle="Productos y stock actual."
       products={mapped}
+      categoryOptions={categories.map((c) => c.nombre)}
       query={query}
       onQueryChange={setQuery}
     />

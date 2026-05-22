@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { api } from '../../services/api'
+import { useCatalogStore } from '../../store/catalog.store'
 import { Card, CardBody, CardHeader } from '../../components/atoms/Card'
 import { Badge } from '../../components/atoms/Badge'
 import { Button } from '../../components/atoms/Button'
@@ -15,6 +16,7 @@ export function AdminCategorias() {
   const [editNombre, setEditNombre] = useState('')
   const [busy, setBusy] = useState(false)
   const [q, setQ] = useState('')
+  const loadCategoriesStore = useCatalogStore((s) => s.loadCategories)
 
   async function load() {
     setLoadError('')
@@ -22,7 +24,7 @@ export function AdminCategorias() {
       const res = await api.get('/categories')
       setCategories(res.categories || [])
     } catch (err) {
-      const msg = err?.error || 'Error al cargar categorias'
+      const msg = err?.data?.error || err?.message || 'Error al cargar categorias'
       setLoadError(msg)
     }
   }
@@ -43,9 +45,9 @@ export function AdminCategorias() {
       await api.post('/categories', { nombre: name })
       toast.success('Categoria creada', { description: name })
       setFormNombre('')
-      await load()
+      await Promise.all([load(), loadCategoriesStore()])
     } catch (err) {
-      toast.error(err?.error || 'Error al crear')
+      toast.error(err?.data?.error || err?.message || 'Error al crear')
     } finally {
       setBusy(false)
     }
@@ -69,9 +71,9 @@ export function AdminCategorias() {
       await api.put(`/categories/${id}`, { nombre: name })
       toast.success('Categoria actualizada')
       setEditing(null)
-      await load()
+      await Promise.all([load(), loadCategoriesStore()])
     } catch (err) {
-      toast.error(err?.error || 'Error al actualizar')
+      toast.error(err?.data?.error || err?.message || 'Error al actualizar')
     } finally {
       setBusy(false)
     }
@@ -83,9 +85,9 @@ export function AdminCategorias() {
     try {
       await api.delete(`/categories/${id}`)
       toast.success('Categoria eliminada')
-      await load()
+      await Promise.all([load(), loadCategoriesStore()])
     } catch (err) {
-      toast.error(err?.error || 'Error al eliminar')
+      toast.error(err?.data?.error || err?.message || 'Error al eliminar')
     } finally {
       setBusy(false)
     }

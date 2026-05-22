@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { api } from '../../services/api'
+import { useCatalogStore } from '../../store/catalog.store'
 import { Card, CardBody, CardHeader } from '../../components/atoms/Card'
 import { Badge } from '../../components/atoms/Badge'
 import { Button } from '../../components/atoms/Button'
@@ -10,7 +11,8 @@ import { SearchBar } from '../../components/molecules/SearchBar'
 
 export function AdminProductos() {
   const [products, setProducts] = useState([])
-  const [categories, setCategories] = useState([])
+  const categories = useCatalogStore((s) => s.categories)
+  const loadCategories = useCatalogStore((s) => s.loadCategories)
   const [q, setQ] = useState('')
   const [form, setForm] = useState({
     codigo: '',
@@ -24,21 +26,23 @@ export function AdminProductos() {
 
   async function load() {
     try {
-      const [p, c] = await Promise.all([
+      const [p] = await Promise.all([
         api.get('/products?limit=500'),
-        api.get('/categories'),
+        loadCategories(),
       ])
       setProducts(p.products || [])
-      setCategories(c.categories || [])
-      if (!form.categoriaId && c.categories?.length) {
-        setForm((s) => ({ ...s, categoriaId: String(c.categories[0].id) }))
-      }
     } catch {
       toast.error('Error al cargar datos')
     }
   }
 
   useEffect(() => { load() }, [])
+
+  useEffect(() => {
+    if (!form.categoriaId && categories.length) {
+      setForm((s) => ({ ...s, categoriaId: String(categories[0].id) }))
+    }
+  }, [categories, form.categoriaId])
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase()
@@ -49,6 +53,10 @@ export function AdminProductos() {
   async function handleCreate() {
     if (!form.codigo.trim() || !form.nombre.trim()) {
       toast.error('Codigo y nombre requeridos')
+      return
+    }
+    if (!form.categoriaId) {
+      toast.error('Categoria requerida')
       return
     }
     try {
