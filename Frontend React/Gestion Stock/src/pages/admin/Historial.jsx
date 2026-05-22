@@ -4,9 +4,17 @@ import { Badge } from '../../components/atoms/Badge'
 import { Card, CardBody, CardHeader } from '../../components/atoms/Card'
 import { Button } from '../../components/atoms/Button'
 import { Input } from '../../components/atoms/Input'
+import { Select } from '../../components/atoms/Select'
 import { SearchBar } from '../../components/molecules/SearchBar'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+
+function ymdLocal(d) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
 
 function labelTipo(tipo) {
   if (tipo === 'INGRESO') return 'Ingreso'
@@ -30,13 +38,6 @@ export function AdminHistorial() {
   const [to, setTo] = useState('')
   const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState('')
-
-  function ymdLocal(d) {
-    const y = d.getFullYear()
-    const m = String(d.getMonth() + 1).padStart(2, '0')
-    const day = String(d.getDate()).padStart(2, '0')
-    return `${y}-${m}-${day}`
-  }
 
   function setPresetToday() {
     const d = new Date()
@@ -100,15 +101,7 @@ export function AdminHistorial() {
 
     autoTable(doc, {
       startY: 78,
-      head: [[
-        'Fecha',
-        'Vendedor',
-        'Rol',
-        'Metodo',
-        'Otros',
-        'Total',
-        'Nota',
-      ]],
+      head: [['Fecha', 'Vendedor', 'Rol', 'Metodo', 'Otros', 'Total', 'Nota']],
       body: saleRows.map((s) => [
         new Date(s.fecha).toLocaleString('es-CL'),
         s.usuarioNombre ?? `ID ${s.usuarioId}`,
@@ -129,14 +122,7 @@ export function AdminHistorial() {
 
     autoTable(doc, {
       startY: afterSalesY + 10,
-      head: [[
-        'Fecha',
-        'Tipo',
-        'Producto',
-        'Codigo',
-        'Cantidad',
-        'Usuario',
-      ]],
+      head: [['Fecha', 'Tipo', 'Producto', 'Codigo', 'Cantidad', 'Usuario']],
       body: rows.map((m) => [
         new Date(m.fecha).toLocaleString('es-CL'),
         m.tipo,
@@ -155,7 +141,6 @@ export function AdminHistorial() {
   }
 
   useEffect(() => {
-    // Default: hoy
     if (!from && !to) setPresetToday()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -201,12 +186,7 @@ export function AdminHistorial() {
             <div className="text-xs text-[var(--muted)] pt-1">Filtra por rango de fechas (ventas + movimientos).</div>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="secondary"
-              className="print:hidden"
-              onClick={downloadPdf}
-              disabled={loading}
-            >
+            <Button variant="secondary" className="print:hidden" onClick={downloadPdf} disabled={loading}>
               Descargar PDF
             </Button>
             <Badge variant={loading ? 'info' : 'neutral'}>{loading ? 'Cargando' : 'OK'}</Badge>
@@ -222,31 +202,34 @@ export function AdminHistorial() {
               Rango: {from || 'N/A'} a {to || 'N/A'}
             </div>
             <div className="text-xs text-zinc-600 pt-1">
-              Ventas: {resumen.totalVentas} · Movimientos: {resumen.totalMov} · Total ventas: $ {new Intl.NumberFormat('es-CL').format(resumen.totalCLP)}
+              Ventas: {resumen.totalVentas} · Movimientos: {resumen.totalMov} · Total ventas: ${' '}
+              {new Intl.NumberFormat('es-CL').format(resumen.totalCLP)}
             </div>
           </div>
 
-          <div className="no-print grid grid-cols-1 lg:grid-cols-[1fr_1fr_auto] gap-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <div className="text-xs text-zinc-400">Desde</div>
-                <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+          <div className="no-print flex flex-col lg:flex-row flex-wrap gap-3">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-3 flex-1 min-w-0">
+              <div className="flex flex-col sm:flex-row gap-3 flex-1 min-w-0">
+                <div className="space-y-1 flex-1 min-w-0">
+                  <div className="text-xs text-zinc-400">Desde</div>
+                  <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+                </div>
+                <div className="space-y-1 flex-1 min-w-0">
+                  <div className="text-xs text-zinc-400">Hasta</div>
+                  <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+                </div>
               </div>
-              <div className="space-y-1">
-                <div className="text-xs text-zinc-400">Hasta</div>
-                <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+              <div className="flex flex-wrap gap-2 items-end">
+                <Button variant="secondary" onClick={setPresetToday}>Hoy</Button>
+                <Button variant="secondary" onClick={setPresetLastWeek}>Ultima semana</Button>
+                <Button variant="secondary" onClick={setPresetThisMonth}>Este mes</Button>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <Button variant="secondary" onClick={setPresetToday}>Hoy</Button>
-              <Button variant="secondary" onClick={setPresetLastWeek}>Ultima semana</Button>
-              <Button variant="secondary" onClick={setPresetThisMonth}>Este mes</Button>
-            </div>
-            <div className="flex items-center gap-2 justify-between lg:justify-end rounded-2xl border border-[rgba(255,255,255,0.06)] bg-white/3 px-4 py-3">
-              <div className="text-xs text-[var(--muted)]">Ventas</div>
-              <div className="text-sm text-zinc-100 font-semibold">{resumen.totalVentas}</div>
-              <div className="text-xs text-[var(--muted)] pl-3">Mov</div>
-              <div className="text-sm text-zinc-100 font-semibold">{resumen.totalMov}</div>
+            <div className="flex items-center gap-3 rounded-2xl border border-[rgba(255,255,255,0.06)] bg-white/3 px-4 py-3 shrink-0 self-start">
+              <span className="text-xs text-[var(--muted)]">Ventas</span>
+              <span className="text-sm text-zinc-100 font-semibold">{resumen.totalVentas}</span>
+              <span className="text-xs text-[var(--muted)]">Mov</span>
+              <span className="text-sm text-zinc-100 font-semibold">{resumen.totalMov}</span>
             </div>
           </div>
         </CardBody>
@@ -265,7 +248,7 @@ export function AdminHistorial() {
             <SearchBar value={qSales} onChange={(e) => setQSales(e.target.value)} placeholder="Buscar ventas por usuario, metodo, nota, total..." />
           </div>
           <div className="overflow-auto rounded-2xl border border-[rgba(255,255,255,0.06)]">
-            <table className="min-w-[980px] w-full text-sm">
+            <table className="w-full text-sm whitespace-nowrap">
               <thead className="bg-white/3">
                 <tr className="text-left text-xs uppercase tracking-[0.14em] text-zinc-400">
                   <th className="px-4 py-3">Fecha</th>
@@ -287,7 +270,7 @@ export function AdminHistorial() {
                     <td className="px-4 py-3 text-zinc-100">{s.metodoPago ?? 'N/A'}</td>
                     <td className="px-4 py-3 text-zinc-100">{new Intl.NumberFormat('es-CL').format(Number(s.otrosCargos) || 0)}</td>
                     <td className="px-4 py-3 text-zinc-100 font-semibold">{new Intl.NumberFormat('es-CL').format(Number(s.total) || 0)}</td>
-                    <td className="px-4 py-3 text-[var(--muted)]">{s.nota || '-'}</td>
+                    <td className="px-4 py-3 text-[var(--muted)] truncate max-w-[180px]">{s.nota || '-'}</td>
                   </tr>
                 ))}
                 {saleRows.length === 0 ? (
@@ -308,21 +291,21 @@ export function AdminHistorial() {
           <Badge variant="neutral">{movements.length}</Badge>
         </CardHeader>
         <CardBody>
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_220px] gap-3 pb-4">
-            <SearchBar value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por producto, usuario, tipo..." />
-            <label className="flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-[rgba(24,24,27,0.75)] backdrop-blur px-3 h-11">
-              <span className="text-xs text-[var(--muted)]">Tipo</span>
-              <select className="w-full bg-transparent border-0 outline-none text-sm text-[var(--text)]" value={tipo} onChange={(e) => setTipo(e.target.value)}>
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3 pb-4">
+            <SearchBar value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por producto, usuario, tipo..." className="flex-1 min-w-0" />
+            <div className="space-y-1 shrink-0">
+              <div className="text-xs text-zinc-400">Tipo</div>
+              <Select value={tipo} onChange={(e) => setTipo(e.target.value)}>
                 <option value="">Todos</option>
                 <option value="INGRESO">Ingreso</option>
                 <option value="SALIDA">Salida</option>
                 <option value="AJUSTE">Ajuste</option>
-              </select>
-            </label>
+              </Select>
+            </div>
           </div>
 
           <div className="overflow-auto rounded-2xl border border-[rgba(255,255,255,0.06)]">
-            <table className="min-w-[880px] w-full text-sm">
+            <table className="w-full text-sm whitespace-nowrap">
               <thead className="bg-white/3">
                 <tr className="text-left text-xs uppercase tracking-[0.14em] text-zinc-400">
                   <th className="px-4 py-3">Fecha</th>

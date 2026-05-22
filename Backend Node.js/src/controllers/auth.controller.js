@@ -2,6 +2,7 @@ const { getPool } = require('../database/db')
 const { signToken } = require('../middlewares/auth')
 const bcrypt = require('bcryptjs')
 const config = require('../config')
+const { formatLocalDatetime, localDatetimeStr } = require('../utils')
 
 async function login(req, res) {
   const pool = getPool()
@@ -41,7 +42,7 @@ async function login(req, res) {
       // Bloqueo simple progresivo: 5 intentos -> 15 min
       if (nextAttempts >= 5) {
         const until = new Date(Date.now() + 15 * 60 * 1000)
-        lockedUntil = until.toISOString().slice(0, 19).replace('T', ' ')
+        lockedUntil = formatLocalDatetime(until)
       }
       await pool.query(
         'UPDATE users SET failed_attempts = ?, locked_until = ? WHERE id = ? LIMIT 1',
@@ -51,7 +52,7 @@ async function login(req, res) {
     }
 
     // Reset lock/attempts and set last_login_at
-    const nowStr = new Date().toISOString().slice(0, 19).replace('T', ' ')
+    const nowStr = localDatetimeStr()
     await pool.query(
       'UPDATE users SET failed_attempts = 0, locked_until = NULL, last_login_at = ? WHERE id = ? LIMIT 1',
       [nowStr, user.id],

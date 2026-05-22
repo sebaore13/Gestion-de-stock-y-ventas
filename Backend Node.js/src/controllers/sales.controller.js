@@ -1,5 +1,5 @@
 const { getPool } = require('../database/db')
-const { toInt, mysqlErrorMessage, normalizeSaleItems, isNonNegativeInt } = require('../utils')
+const { toInt, mysqlErrorMessage, normalizeSaleItems, isNonNegativeInt, formatLocalDatetime } = require('../utils')
 
 const ALLOWED_METODOS_PAGO = new Set(['EFECTIVO', 'TARJETA', 'FACTURA'])
 
@@ -96,7 +96,7 @@ async function create(req, res) {
     }
 
     const now = new Date()
-    const fechaStr = now.toISOString().slice(0, 19).replace('T', ' ')
+    const fechaStr = formatLocalDatetime(now)
 
     let total = 0
     for (const p of products) {

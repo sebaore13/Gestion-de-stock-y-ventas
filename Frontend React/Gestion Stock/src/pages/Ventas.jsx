@@ -33,6 +33,7 @@ function VentasPage() {
   const [submitting, setSubmitting] = useState(false)
   const [metodoPago, setMetodoPago] = useState('EFECTIVO')
   const [otrosCargos, setOtrosCargos] = useState(0)
+  const [knownProductsById, setKnownProductsById] = useState({})
 
   const categories = useCatalogStore((s) => s.categories)
   const loadCategories = useCatalogStore((s) => s.loadCategories)
@@ -54,7 +55,14 @@ function VentasPage() {
         if (q) params.set('query', q)
         if (categoria) params.set('categoriaId', categoria)
         const res = await api.get(`/products?${params.toString()}`)
-        setResults(res.products || [])
+        const products = res.products || []
+        setResults(products)
+        // Cache products seen/added so the cart doesn't depend on current search results.
+        setKnownProductsById((prev) => {
+          const next = { ...prev }
+          for (const p of products) next[p.id] = p
+          return next
+        })
       } catch {
         setResults([])
       } finally {
@@ -65,12 +73,28 @@ function VentasPage() {
   }, [query, categoria])
 
   const cart = useMemo(() => {
-    const byId = new Map(results.map((p) => [p.id, p]))
-    return ventaItems.map((i) => {
-      const p = byId.get(i.productoId)
-      return p ? { product: p, qty: i.cantidad } : null
-    }).filter(Boolean)
-  }, [ventaItems, results])
+    return ventaItems
+      .filter((i) => i.cantidad > 0)
+      .map((i) => {
+        const p = knownProductsById[i.productoId]
+        if (!p) {
+          return {
+            product: {
+              id: i.productoId,
+              nombre: 'Producto',
+              codigo: `ID ${i.productoId}`,
+              categoria: '',
+              precio: 0,
+              stock: 0,
+              minimo: 0,
+            },
+            qty: i.cantidad,
+            missing: true,
+          }
+        }
+        return { product: p, qty: i.cantidad, missing: false }
+      })
+  }, [ventaItems, knownProductsById])
 
   const totals = useMemo(() => {
     const unique = cart.length
@@ -82,6 +106,7 @@ function VentasPage() {
   }, [cart, otrosCargos])
 
   function add(product) {
+    setKnownProductsById((prev) => ({ ...prev, [product.id]: product }))
     const existing = ventaItems.find((i) => i.productoId === product.id)
     const nextQty = (existing?.cantidad ?? 0) + 1
     setVentaCantidad({ productoId: product.id, cantidad: nextQty })
@@ -128,8 +153,8 @@ function VentasPage() {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-4">
-      <Card>
+    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] gap-4">
+      <Card className="min-w-0">
         <CardHeader>
           <div>
             <div className="text-sm font-semibold">Ventas</div>
@@ -174,21 +199,34 @@ function VentasPage() {
                   <button key={p.id} className="w-full text-left" onClick={() => add(p)}>
                     <div
                       className={cn(
-                        'flex items-center gap-3 rounded-2xl border bg-white/3 px-4 py-3 transition',
+                        'flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl border bg-white/3 px-4 py-3 transition',
                         'border-[rgba(255,255,255,0.06)] hover:bg-white/5',
                       )}
                     >
-                        <div className="min-w-0 flex-1">
-                          <div className="text-sm font-semibold text-zinc-100 truncate">{p.nombre}</div>
-                          <div className="text-xs text-[var(--muted)] pt-0.5">
-                            {p.codigo} · {p.categoria}
+                      <div className="min-w-0 flex-1">
+                        <div className="min-w-0 flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="text-sm font-semibold text-zinc-100 truncate">{p.nombre}</div>
+                            <div className="text-xs text-[var(--muted)] pt-0.5 truncate">
+                              {p.codigo} · {p.categoria}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0 pt-0.5 sm:hidden">
+                            <Badge variant={isLow ? 'danger' : 'success'}>{isLow ? 'Bajo' : 'OK'}</Badge>
+                            <Badge variant={isLow ? 'danger' : 'neutral'}>{p.stock}</Badge>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <PriceBlock value={p.precio} />
+                      </div>
+
+                      <div className="w-full sm:w-auto flex items-center justify-center sm:justify-end">
+                        <PriceBlock value={p.precio} align="center" className="shrink-0 sm:hidden" />
+
+                        <div className="hidden sm:flex items-center gap-3">
+                          <PriceBlock value={p.precio} align="right" />
                           <Badge variant={isLow ? 'danger' : 'success'}>{isLow ? 'Bajo' : 'OK'}</Badge>
                           <Badge variant={isLow ? 'danger' : 'neutral'}>{p.stock}</Badge>
                         </div>
+                      </div>
                     </div>
                   </button>
                 )
@@ -208,7 +246,7 @@ function VentasPage() {
         </CardBody>
       </Card>
 
-      <Card>
+      <Card className="min-w-0">
         <CardHeader>
           <div>
             <div className="text-sm font-semibold">Resumen</div>
@@ -218,28 +256,36 @@ function VentasPage() {
         </CardHeader>
         <CardBody>
           <div className="space-y-2">
-            {ventaItems.map((item) => {
-              const prod = results.find((p) => p.id === item.productoId)
-              if (!prod) return null
+            {cart.map((row) => {
+              const prod = row.product
+              const controls = (
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => dec(prod.id)} disabled={row.missing}>-</Button>
+                  <Badge variant="neutral">{row.qty}</Badge>
+                  <Button variant="ghost" size="sm" onClick={() => inc(prod.id)} disabled={row.missing}>+</Button>
+                  <Button variant="ghost" size="sm" onClick={() => remove(prod.id)} aria-label="Quitar">
+                    <X size={16} />
+                  </Button>
+                </div>
+              )
+
               return (
                 <div
                   key={prod.id}
-                  className="flex items-center gap-3 rounded-2xl border border-[rgba(255,255,255,0.06)] bg-white/3 px-4 py-3"
+                  className="flex flex-col gap-2 rounded-2xl border border-[rgba(255,255,255,0.06)] bg-white/3 px-4 py-3"
                 >
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0">
                     <div className="text-sm font-semibold text-zinc-100 truncate">{prod.nombre}</div>
-                    <div className="text-xs text-[var(--muted)] pt-0.5">
-                      {prod.codigo}
-                    </div>
+                    <div className="text-xs text-[var(--muted)] pt-0.5 truncate">{prod.codigo}</div>
+                    {row.missing ? (
+                      <div className="text-[11px] text-[var(--muted)] pt-1">Este producto ya no esta en la busqueda actual.</div>
+                    ) : null}
                   </div>
-                  <PriceBlock value={prod.precio} className="shrink-0" />
-                  <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => dec(prod.id)}>-</Button>
-                    <Badge variant="neutral">{item.cantidad}</Badge>
-                    <Button variant="ghost" size="sm" onClick={() => inc(prod.id)}>+</Button>
-                    <Button variant="ghost" size="sm" onClick={() => remove(prod.id)}>
-                      <X size={16} />
-                    </Button>
+
+                  <div className="pt-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <PriceBlock value={prod.precio} align="center" className="sm:hidden self-center" />
+                    <PriceBlock value={prod.precio} align="left" className="hidden sm:flex" />
+                    <div className="flex items-center justify-center sm:justify-end">{controls}</div>
                   </div>
                 </div>
               )

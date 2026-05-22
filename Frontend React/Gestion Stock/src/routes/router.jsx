@@ -13,7 +13,6 @@ import { AdminDashboard } from '../pages/admin/Dashboard'
 import { AdminProductos } from '../pages/admin/Productos'
 import { AdminUsuarios } from '../pages/admin/Usuarios'
 import { AdminHistorial } from '../pages/admin/Historial'
-import { AdminHistorialNuevo } from '../pages/admin/HistorialNuevo'
 import { AdminCategorias } from '../pages/admin/Categorias'
 
 export const router = createHashRouter([
@@ -47,7 +46,6 @@ export const router = createHashRouter([
           { path: 'categorias', element: <AdminCategorias /> },
           { path: 'usuarios', element: <AdminUsuarios /> },
           { path: 'historial', element: <AdminHistorial /> },
-          { path: 'historial/nuevo', element: <AdminHistorialNuevo /> },
           { path: 'config', element: <Config /> },
         ],
       },

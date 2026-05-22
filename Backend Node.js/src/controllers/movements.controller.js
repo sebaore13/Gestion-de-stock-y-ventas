@@ -1,5 +1,5 @@
 const { getPool } = require('../database/db')
-const { toInt, mysqlErrorMessage, isNonNegativeInt } = require('../utils')
+const { toInt, mysqlErrorMessage, isNonNegativeInt, localDatetimeStr } = require('../utils')
 
 const ALLOWED_CREATE_TIPOS = new Set(['INGRESO', 'AJUSTE'])
 
@@ -69,7 +69,7 @@ async function create(req, res) {
 
     await conn.query('UPDATE products SET stock = ? WHERE id = ? LIMIT 1', [nextStock, pid])
 
-    const fechaStr = new Date().toISOString().slice(0, 19).replace('T', ' ')
+    const fechaStr = localDatetimeStr()
     const [result] = await conn.query(
       'INSERT INTO movements (tipo, productoId, cantidad, fecha, usuarioId, motivo, nota) VALUES (?, ?, ?, ?, ?, ?, ?)',
       [tipo, pid, cantidad, fechaStr, req.auth.userId, motivo || null, nota || null],

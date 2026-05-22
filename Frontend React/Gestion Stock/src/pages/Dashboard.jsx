@@ -106,36 +106,51 @@ export function Dashboard() {
             </Link>
           </div>
 
-          <div className="pt-4">
-            {codigo.trim() ? (
-              productoEncontrado ? (
-                <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-white/3 px-4 py-4">
-                  <div className="flex flex-col md:flex-row md:items-center gap-3 md:justify-between">
-                    <div className="min-w-0">
-                      <div className="text-base font-semibold text-zinc-100 truncate">{productoEncontrado.nombre}</div>
-                      <div className="text-xs text-[var(--muted)] pt-0.5">
-                        {productoEncontrado.codigo} · {productoEncontrado.categoria}
+            <div className="pt-4">
+              {codigo.trim() ? (
+                productoEncontrado ? (
+                  <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-white/3 px-4 py-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="min-w-0 flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="text-base font-semibold text-zinc-100 truncate">{productoEncontrado.nombre}</div>
+                            <div className="text-xs text-[var(--muted)] pt-0.5 truncate">
+                              {productoEncontrado.codigo} · {productoEncontrado.categoria}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0 pt-0.5 sm:hidden">
+                            <Badge variant="neutral">Stock {productoEncontrado.stock}</Badge>
+                            <Badge variant={productoEncontrado.stock <= productoEncontrado.minimo ? 'danger' : 'success'}>
+                              {productoEncontrado.stock <= productoEncontrado.minimo ? 'Stock Bajo' : 'OK'}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="text-xs text-[var(--muted)] pt-1">
+                          Ingreso:{' '}
+                          {productoEncontrado.fechaIngreso
+                            ? new Date(productoEncontrado.fechaIngreso).toLocaleDateString('es-CL')
+                            : 'N/A'}
+                        </div>
                       </div>
-                      <div className="text-xs text-[var(--muted)] pt-1">
-                        Ingreso:{' '}
-                        {productoEncontrado.fechaIngreso
-                          ? new Date(productoEncontrado.fechaIngreso).toLocaleDateString('es-CL')
-                          : 'N/A'}
+
+                      <div className="w-full sm:w-auto flex items-center justify-center sm:justify-end">
+                        <PriceBlock value={productoEncontrado.precio} align="center" className="shrink-0 sm:hidden" />
+
+                        <div className="hidden sm:flex items-center gap-2">
+                          <Badge variant="neutral">Stock {productoEncontrado.stock}</Badge>
+                          <Badge variant={productoEncontrado.stock <= productoEncontrado.minimo ? 'danger' : 'success'}>
+                            {productoEncontrado.stock <= productoEncontrado.minimo ? 'Stock Bajo' : 'OK'}
+                          </Badge>
+                          <PriceBlock value={productoEncontrado.precio} align="right" />
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="neutral">Stock {productoEncontrado.stock}</Badge>
-                      <Badge variant={productoEncontrado.stock <= productoEncontrado.minimo ? 'danger' : 'success'}>
-                        {productoEncontrado.stock <= productoEncontrado.minimo ? 'Stock Bajo' : 'OK'}
-                      </Badge>
-                      <PriceBlock value={productoEncontrado.precio} />
                     </div>
                   </div>
-                </div>
-              ) : lookupError ? (
-                <div className="py-2 text-sm text-[var(--muted)]">No encontre un producto con ese codigo.</div>
-              ) : null
-            ) : (
+                ) : lookupError ? (
+                  <div className="py-2 text-sm text-[var(--muted)]">No encontre un producto con ese codigo.</div>
+                ) : null
+              ) : (
               <div className="py-2 text-sm text-[var(--muted)]">Ingresa un codigo o escribe el nombre para ver precio y stock.</div>
             )}
           </div>

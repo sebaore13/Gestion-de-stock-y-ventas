@@ -13,13 +13,16 @@ export function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const user = useAuthStore((s) => s.user)
   const login = useAuthStore((s) => s.login)
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (isAuthenticated) navigate('/', { replace: true })
-  }, [isAuthenticated, navigate])
+    if (isAuthenticated) {
+      navigate(user?.rol === 'Administrador' ? '/admin' : '/', { replace: true })
+    }
+  }, [isAuthenticated, user, navigate])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -30,7 +33,8 @@ export function Login() {
     setError('')
     try {
       await login(val, password)
-      navigate('/', { replace: true })
+      const u = useAuthStore.getState().user
+      navigate(u?.rol === 'Administrador' ? '/admin' : '/', { replace: true })
     } catch (err) {
       const msg = err?.message || 'No se pudo iniciar sesion'
       setError(msg)

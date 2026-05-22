@@ -3,9 +3,9 @@ import { motion } from 'framer-motion'
 import { cn } from '../../design/cn'
 import { motionTokens } from '../../design/motion'
 
-export function SidebarItem({ icon: Icon, label, to, collapsed, end }) {
+export function SidebarItem({ icon: Icon, label, to, collapsed, end, onSelect }) {
   return (
-    <NavLink to={to} end={end} className="block">
+    <NavLink to={to} end={end} className="block" onClick={() => onSelect?.()}>
       {({ isActive }) => (
         <motion.div
           whileHover={{ y: -1 }}

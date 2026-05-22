@@ -1,5 +1,7 @@
-import { Calendar, Menu, User } from 'lucide-react'
+import { Calendar, LogOut, Menu, User } from 'lucide-react'
+import { useAuthStore } from '../../services/auth.store'
 import { cn } from '../../design/cn'
+import { Button } from '../atoms/Button'
 
 function todayLabel() {
   return new Intl.DateTimeFormat('es-CL', {
@@ -10,6 +12,8 @@ function todayLabel() {
 }
 
 export function Topbar({ title, rightSlot, onOpenMenu }) {
+  const logout = useAuthStore((s) => s.logout)
+
   return (
     <header
       className={cn(
@@ -41,6 +45,20 @@ export function Topbar({ title, rightSlot, onOpenMenu }) {
 
         <div className="ml-auto flex items-center gap-3">
           {rightSlot}
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              logout()
+              window.location.hash = '#/login'
+            }}
+            aria-label="Salir"
+          >
+            <LogOut size={16} />
+            <span className="hidden sm:inline">Salir</span>
+          </Button>
+
           <div className="h-10 w-10 rounded-2xl border border-white/5 bg-white/4 grid place-items-center text-zinc-100">
             <User size={18} />
           </div>

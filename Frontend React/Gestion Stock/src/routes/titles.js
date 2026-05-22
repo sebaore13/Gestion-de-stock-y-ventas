@@ -18,8 +18,6 @@ export function titleForPath(pathname) {
       return 'Admin · Usuarios'
     case '/admin/historial':
       return 'Admin · Historial'
-    case '/admin/historial/nuevo':
-      return 'Admin · Crear historial'
     case '/admin/config':
       return 'Admin · Configuracion'
     default:

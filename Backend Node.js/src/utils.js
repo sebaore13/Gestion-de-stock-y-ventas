@@ -37,4 +37,16 @@ function normalizeSaleItems(items) {
   return { ok: true, items: normalized }
 }
 
-module.exports = { toInt, isNonNegativeInt, mysqlErrorMessage, normalizeSaleItems }
+function localDatetimeStr() {
+  const d = new Date()
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+}
+
+function formatLocalDatetime(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
+module.exports = { toInt, isNonNegativeInt, mysqlErrorMessage, normalizeSaleItems, localDatetimeStr, formatLocalDatetime }
