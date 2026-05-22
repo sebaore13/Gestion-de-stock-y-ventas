@@ -32,4 +32,5 @@ export const api = {
   post: (path, body) => request('POST', path, body),
   put: (path, body) => request('PUT', path, body),
   del: (path) => request('DELETE', path),
+  delete: (path) => request('DELETE', path),
 }
