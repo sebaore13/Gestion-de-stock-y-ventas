@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
+import { Eye, EyeOff } from 'lucide-react'
 import { useAuthStore } from '../services/auth.store'
 import { Button } from '../components/atoms/Button'
 import { Input } from '../components/atoms/Input'
@@ -40,13 +41,20 @@ export function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950">
-      <div className="min-h-screen grid lg:grid-cols-2">
+    <div className="min-h-screen bg-zinc-950 relative overflow-hidden">
+      <div
+        className="absolute inset-0 lg:hidden bg-cover bg-center"
+        style={{ backgroundImage: "url('public/Taller_fabi1.png')" }}
+        aria-hidden="true"
+      />
+      <div className="absolute inset-0 lg:hidden bg-gradient-to-tr from-black/85 via-black/70 to-black/80" aria-hidden="true" />
+
+      <div className="relative min-h-screen grid lg:grid-cols-2">
         <div className="relative hidden lg:block">
           <div
             className="absolute inset-0 bg-cover bg-center"
             style={{
-              backgroundImage: "url('/taller.jpg')",
+              backgroundImage: "url('public/Taller_fabi2.png')",
             }}
           />
           <div className="absolute inset-0 bg-gradient-to-tr from-black/80 via-black/55 to-black/70" />
@@ -83,13 +91,6 @@ export function Login() {
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
                     <div className="text-xs text-zinc-400">Password</div>
-                    <button
-                      type="button"
-                      className="text-xs text-zinc-300 hover:text-white transition"
-                      onClick={() => setShowPassword((v) => !v)}
-                    >
-                      {showPassword ? 'Ocultar' : 'Mostrar'}
-                    </button>
                   </div>
                   <Input
                     value={password}
@@ -97,6 +98,17 @@ export function Login() {
                     type={showPassword ? 'text' : 'password'}
                     placeholder="••••••••"
                     autoComplete="current-password"
+                    end={(
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((v) => !v)}
+                        className="h-9 w-9 grid place-items-center rounded-lg text-zinc-300 hover:text-white hover:bg-white/5 transition"
+                        aria-label={showPassword ? 'Ocultar password' : 'Mostrar password'}
+                        title={showPassword ? 'Ocultar' : 'Mostrar'}
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    )}
                   />
                 </div>
 
@@ -109,7 +121,7 @@ export function Login() {
                 </Button>
 
                 <div className="text-xs text-[var(--muted)]">
-                  Si olvidaste tu password, solicita al administrador un reinicio.
+                  Si olvidaste tu password, solicita un reinicio.
                 </div>
               </form>
             </div>
