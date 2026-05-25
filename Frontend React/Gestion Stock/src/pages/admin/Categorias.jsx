@@ -6,6 +6,7 @@ import { Card, CardBody, CardHeader } from '../../components/atoms/Card'
 import { Badge } from '../../components/atoms/Badge'
 import { Button } from '../../components/atoms/Button'
 import { Input } from '../../components/atoms/Input'
+import { Modal } from '../../components/atoms/Modal'
 import { SearchBar } from '../../components/molecules/SearchBar'
 
 export function AdminCategorias() {
@@ -15,6 +16,7 @@ export function AdminCategorias() {
   const [editing, setEditing] = useState(null)
   const [editNombre, setEditNombre] = useState('')
   const [busy, setBusy] = useState(false)
+  const [pendingConfirm, setPendingConfirm] = useState(null)
   const [q, setQ] = useState('')
   const loadCategoriesStore = useCatalogStore((s) => s.loadCategories)
 
@@ -37,9 +39,13 @@ export function AdminCategorias() {
     return categories.filter((c) => c.nombre.toLowerCase().includes(needle))
   }, [categories, q])
 
-  async function handleCreate() {
+  function requestCreate() {
     const name = formNombre.trim()
     if (!name) return toast.error('Nombre requerido')
+    setPendingConfirm({ type: 'create', name })
+  }
+
+  async function performCreate(name) {
     setBusy(true)
     try {
       await api.post('/categories', { nombre: name })
@@ -63,9 +69,13 @@ export function AdminCategorias() {
     setEditNombre('')
   }
 
-  async function handleUpdate(id) {
+  function requestUpdate(id) {
     const name = editNombre.trim()
     if (!name) return toast.error('Nombre requerido')
+    setPendingConfirm({ type: 'update', id, name })
+  }
+
+  async function performUpdate(id, name) {
     setBusy(true)
     try {
       await api.put(`/categories/${id}`, { nombre: name })
@@ -79,17 +89,32 @@ export function AdminCategorias() {
     }
   }
 
-  async function handleDelete(id) {
-    if (!confirm('Eliminar esta categoria? Los productos asociados la conservaran.')) return
+  function requestDelete(cat) {
+    setPendingConfirm({ type: 'delete', id: cat.id, name: cat.nombre })
+  }
+
+  async function performDelete(id) {
     setBusy(true)
     try {
-      await api.delete(`/categories/${id}`)
+      await api.del(`/categories/${id}`)
       toast.success('Categoria eliminada')
       await Promise.all([load(), loadCategoriesStore()])
     } catch (err) {
       toast.error(err?.data?.error || err?.message || 'Error al eliminar')
     } finally {
       setBusy(false)
+    }
+  }
+
+  async function confirmPending() {
+    if (!pendingConfirm || busy) return
+    const p = pendingConfirm
+    try {
+      if (p.type === 'create') await performCreate(p.name)
+      if (p.type === 'update') await performUpdate(p.id, p.name)
+      if (p.type === 'delete') await performDelete(p.id)
+    } finally {
+      setPendingConfirm(null)
     }
   }
 
@@ -113,9 +138,9 @@ export function AdminCategorias() {
               value={formNombre}
               onChange={(e) => setFormNombre(e.target.value)}
               placeholder="Nombre de la categoria"
-              onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+              onKeyDown={(e) => e.key === 'Enter' && requestCreate()}
             />
-            <Button variant="primary" onClick={handleCreate} disabled={busy}>Crear</Button>
+            <Button variant="primary" onClick={requestCreate} disabled={busy || pendingConfirm !== null}>Crear</Button>
           </div>
         </CardBody>
       </Card>
@@ -140,12 +165,12 @@ export function AdminCategorias() {
                       <Input
                         value={editNombre}
                         onChange={(e) => setEditNombre(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleUpdate(c.id)}
+                        onKeyDown={(e) => e.key === 'Enter' && requestUpdate(c.id)}
                       />
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button variant="primary" onClick={() => handleUpdate(c.id)} disabled={busy}>Guardar</Button>
-                      <Button variant="ghost" onClick={cancelEdit}>Cancelar</Button>
+                      <Button variant="primary" onClick={() => requestUpdate(c.id)} disabled={busy || pendingConfirm !== null}>Guardar</Button>
+                      <Button variant="secondary" onClick={cancelEdit}>Cancelar</Button>
                     </div>
                   </>
                 ) : (
@@ -154,8 +179,14 @@ export function AdminCategorias() {
                       <div className="text-sm font-semibold text-zinc-100">{c.nombre}</div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button variant="ghost" onClick={() => startEdit(c)}>Editar</Button>
-                      <Button variant="danger" onClick={() => handleDelete(c.id)} disabled={busy}>Eliminar</Button>
+                      <Button variant="secondary" onClick={() => startEdit(c)}>Editar</Button>
+                      <Button
+                        variant="danger"
+                        onClick={() => requestDelete(c)}
+                        disabled={busy || pendingConfirm !== null}
+                      >
+                        Eliminar
+                      </Button>
                     </div>
                   </>
                 )}
@@ -165,6 +196,43 @@ export function AdminCategorias() {
           </div>
         </CardBody>
       </Card>
+
+      <Modal
+        open={pendingConfirm !== null}
+        onClose={() => (busy ? null : setPendingConfirm(null))}
+        title={
+          pendingConfirm?.type === 'delete'
+            ? 'Eliminar categoria'
+            : pendingConfirm?.type === 'update'
+              ? 'Guardar cambios'
+              : 'Crear categoria'
+        }
+      >
+        {pendingConfirm?.type === 'delete' ? (
+          <div className="text-sm text-[var(--muted)] pb-4">
+            ¿Estas seguro de eliminar la categoria <span className="text-zinc-100 font-medium">{pendingConfirm.name}</span>?
+            <div className="pt-2">Esta accion no se puede deshacer.</div>
+            <div className="pt-2">Los productos asociados conservaran la categoria anterior.</div>
+          </div>
+        ) : pendingConfirm?.type === 'create' ? (
+          <div className="text-sm text-[var(--muted)] pb-4">
+            ¿Deseas crear la categoria <span className="text-zinc-100 font-medium">{pendingConfirm.name}</span>?
+          </div>
+        ) : (
+          <div className="text-sm text-[var(--muted)] pb-4">¿Deseas guardar los cambios realizados?</div>
+        )}
+
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" onClick={() => setPendingConfirm(null)} disabled={busy}>Cancelar</Button>
+          <Button
+            variant={pendingConfirm?.type === 'delete' ? 'danger' : 'primary'}
+            onClick={confirmPending}
+            disabled={busy}
+          >
+            {busy ? 'Procesando...' : 'Confirmar'}
+          </Button>
+        </div>
+      </Modal>
     </div>
   )
 }

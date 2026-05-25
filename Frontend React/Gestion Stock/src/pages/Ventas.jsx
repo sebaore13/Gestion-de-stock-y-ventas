@@ -32,7 +32,7 @@ function VentasPage() {
   const [searching, setSearching] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [metodoPago, setMetodoPago] = useState('EFECTIVO')
-  const [otrosCargos, setOtrosCargos] = useState(0)
+  const [otrosCargos, setOtrosCargos] = useState('')
   const [knownProductsById, setKnownProductsById] = useState({})
 
   const categories = useCatalogStore((s) => s.categories)
@@ -100,7 +100,7 @@ function VentasPage() {
     const unique = cart.length
     const items = cart.reduce((acc, row) => acc + row.qty, 0)
     const subtotal = cart.reduce((acc, row) => acc + row.qty * row.product.precio, 0)
-    const extras = Number.isFinite(otrosCargos) ? Math.max(0, Math.trunc(otrosCargos)) : 0
+    const extras = otrosCargos === '' ? 0 : Math.max(0, Math.trunc(Number(otrosCargos) || 0))
     const total = subtotal + extras
     return { unique, items, subtotal, extras, total }
   }, [cart, otrosCargos])
@@ -135,7 +135,7 @@ function VentasPage() {
       await api.post('/sales', { items, metodoPago, otrosCargos: totals.extras })
       clearVenta()
       setConfirmOpen(false)
-      setOtrosCargos(0)
+      setOtrosCargos('')
       setMetodoPago('EFECTIVO')
       toast.success('Venta registrada', { description: `Se vendieron ${totals.items} items` })
     } catch (err) {
@@ -324,7 +324,16 @@ function VentasPage() {
                   value={otrosCargos}
                   type="number"
                   min={0}
-                  onChange={(e) => setOtrosCargos(Math.max(0, Math.trunc(Number(e.target.value) || 0)))}
+                  step={1}
+                  placeholder="Ej: 2000"
+                  onChange={(e) => {
+                    const raw = e.target.value
+                    if (raw === '') {
+                      setOtrosCargos('')
+                      return
+                    }
+                    setOtrosCargos(String(Math.max(0, Math.trunc(Number(raw) || 0))))
+                  }}
                 />
               </div>
               <div className="flex items-center justify-between text-base pt-1">
@@ -361,7 +370,21 @@ function VentasPage() {
             </div>
             <div className="space-y-1">
               <div className="text-xs text-zinc-400">Otros cobros</div>
-              <Input value={otrosCargos} type="number" min={0} onChange={(e) => setOtrosCargos(Math.max(0, Math.trunc(Number(e.target.value) || 0)))} />
+              <Input
+                value={otrosCargos}
+                type="number"
+                min={0}
+                step={1}
+                placeholder="Ej: 2000"
+                onChange={(e) => {
+                  const raw = e.target.value
+                  if (raw === '') {
+                    setOtrosCargos('')
+                    return
+                  }
+                  setOtrosCargos(String(Math.max(0, Math.trunc(Number(raw) || 0))))
+                }}
+              />
             </div>
           </div>
           <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-white/3 p-4">
@@ -370,7 +393,7 @@ function VentasPage() {
             <div className="pt-1 text-xs text-[var(--muted)]">{totals.items} items</div>
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setConfirmOpen(false)}>Cancelar</Button>
+            <Button variant="secondary" onClick={() => setConfirmOpen(false)}>Cancelar</Button>
             <Button variant="primary" onClick={confirm} disabled={submitting}>
               {submitting ? 'Registrando...' : 'Confirmar'}
             </Button>

@@ -28,9 +28,9 @@ export function AdminProductos() {
     codigo: '',
     nombre: '',
     categoriaId: '',
-    stock: 0,
-    minimo: 0,
-    precio: 0,
+    stock: '',
+    minimo: '',
+    precio: '',
     fechaIngreso: '',
   })
 
@@ -70,18 +70,21 @@ export function AdminProductos() {
       return
     }
     try {
+      const precio = Math.max(0, Math.trunc(Number(form.precio || 0)))
+      const stock = Math.max(0, Math.trunc(Number(form.stock || 0)))
+      const minimo = Math.max(0, Math.trunc(Number(form.minimo || 0)))
       const body = {
         codigo: form.codigo.trim(),
         nombre: form.nombre.trim(),
         categoriaId: Number(form.categoriaId),
-        precio: Number(form.precio) || 0,
-        stock: Number(form.stock) || 0,
-        minimo: Number(form.minimo) || 0,
+        precio,
+        stock,
+        minimo,
       }
       if (form.fechaIngreso) body.fechaIngreso = form.fechaIngreso
       await api.post('/products', body)
       toast.success('Producto creado')
-      setForm({ codigo: '', nombre: '', categoriaId: form.categoriaId, stock: 0, minimo: 0, precio: 0, fechaIngreso: '' })
+      setForm({ codigo: '', nombre: '', categoriaId: form.categoriaId, stock: '', minimo: '', precio: '', fechaIngreso: '' })
       load()
     } catch (err) {
       toast.error('No se pudo crear', { description: err.message })
@@ -172,15 +175,36 @@ export function AdminProductos() {
                   </div>
                   <div className="space-y-1">
                     <div className="text-xs text-zinc-400">Precio</div>
-                    <Input value={form.precio} onChange={(e) => setForm((s) => ({ ...s, precio: Number(e.target.value) }))} placeholder="0" type="number" />
+                    <Input
+                      value={form.precio}
+                      onChange={(e) => setForm((s) => ({ ...s, precio: e.target.value }))}
+                      placeholder="Ej: 12000"
+                      type="number"
+                      min={0}
+                      step={1}
+                    />
                   </div>
                   <div className="space-y-1">
                     <div className="text-xs text-zinc-400">Stock</div>
-                    <Input value={form.stock} onChange={(e) => setForm((s) => ({ ...s, stock: Number(e.target.value) }))} placeholder="0" type="number" />
+                    <Input
+                      value={form.stock}
+                      onChange={(e) => setForm((s) => ({ ...s, stock: e.target.value }))}
+                      placeholder="Ej: 10"
+                      type="number"
+                      min={0}
+                      step={1}
+                    />
                   </div>
                   <div className="space-y-1">
                     <div className="text-xs text-zinc-400">Minimo</div>
-                    <Input value={form.minimo} onChange={(e) => setForm((s) => ({ ...s, minimo: Number(e.target.value) }))} placeholder="0" type="number" />
+                    <Input
+                      value={form.minimo}
+                      onChange={(e) => setForm((s) => ({ ...s, minimo: e.target.value }))}
+                      placeholder="Ej: 2"
+                      type="number"
+                      min={0}
+                      step={1}
+                    />
                   </div>
                 </div>
                 <div className="pt-3 flex gap-2">
@@ -283,10 +307,14 @@ export function AdminProductos() {
                         <div className="space-y-1">
                           <div className="text-xs text-zinc-400">Stock</div>
                           <Input
-                            defaultValue={p.stock}
+                            defaultValue={p.stock || ''}
                             type="number"
+                            min={0}
+                            step={1}
                             onBlur={(e) => {
-                              const v = Number(e.target.value)
+                              const raw = e.target.value
+                              if (raw === '') return
+                              const v = Math.max(0, Math.trunc(Number(raw)))
                               if (v !== p.stock) stageEdit(p.id, { stock: v })
                             }}
                           />
@@ -294,10 +322,14 @@ export function AdminProductos() {
                         <div className="space-y-1">
                           <div className="text-xs text-zinc-400">Minimo</div>
                           <Input
-                            defaultValue={p.minimo}
+                            defaultValue={p.minimo || ''}
                             type="number"
+                            min={0}
+                            step={1}
                             onBlur={(e) => {
-                              const v = Number(e.target.value)
+                              const raw = e.target.value
+                              if (raw === '') return
+                              const v = Math.max(0, Math.trunc(Number(raw)))
                               if (v !== p.minimo) stageEdit(p.id, { minimo: v })
                             }}
                           />
@@ -305,10 +337,14 @@ export function AdminProductos() {
                         <div className="space-y-1 sm:col-span-2">
                           <div className="text-xs text-zinc-400">Precio</div>
                           <Input
-                            defaultValue={p.precio}
+                            defaultValue={p.precio || ''}
                             type="number"
+                            min={0}
+                            step={1}
                             onBlur={(e) => {
-                              const v = Number(e.target.value)
+                              const raw = e.target.value
+                              if (raw === '') return
+                              const v = Math.max(0, Math.trunc(Number(raw)))
                               if (v !== p.precio) stageEdit(p.id, { precio: v })
                             }}
                           />

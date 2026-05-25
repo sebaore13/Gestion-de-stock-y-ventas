@@ -333,7 +333,7 @@ export function AdminUsuarios() {
           ¿Deseas guardar los cambios realizados a este usuario?
         </div>
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={() => setPendingEdit(null)}>Cancelar</Button>
+          <Button variant="secondary" onClick={() => setPendingEdit(null)}>Cancelar</Button>
           <Button variant="primary" onClick={confirmEdit}>Guardar cambios</Button>
         </div>
       </Modal>
