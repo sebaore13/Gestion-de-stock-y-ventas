@@ -185,7 +185,7 @@ export function AdminProductos() {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button variant="primary" onClick={handleCreate}>Crear</Button>
-                  <Button variant="ghost" onClick={() => setAddOpen(false)}>Cancelar</Button>
+                  <Button variant="secondary" onClick={() => setAddOpen(false)}>Cancelar</Button>
                 </div>
               </CardBody>
             </motion.div>
@@ -335,7 +335,7 @@ export function AdminProductos() {
           ¿Estas seguro de que deseas eliminar este producto? Esta accion no se puede deshacer.
         </div>
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={() => setDeleteTarget(null)}>Cancelar</Button>
+          <Button variant="secondary" onClick={() => setDeleteTarget(null)}>Cancelar</Button>
           <Button variant="danger" onClick={confirmDelete}>Eliminar</Button>
         </div>
       </Modal>
@@ -349,7 +349,7 @@ export function AdminProductos() {
           ¿Deseas guardar los cambios realizados a este producto?
         </div>
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={() => setPendingEdit(null)}>Cancelar</Button>
+          <Button variant="secondary" onClick={() => setPendingEdit(null)}>Cancelar</Button>
           <Button variant="primary" onClick={confirmEdit}>Guardar cambios</Button>
         </div>
       </Modal>

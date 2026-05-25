@@ -48,7 +48,7 @@ export function Login() {
     <div className="min-h-screen bg-zinc-950 relative overflow-hidden">
       <div
         className="absolute inset-0 lg:hidden bg-cover bg-center"
-        style={{ backgroundImage: "url('public/Taller_fabi1.png')" }}
+        style={{ backgroundImage: "url('public/Fondo_login_celular.webp')" }}
         aria-hidden="true"
       />
       <div className="absolute inset-0 lg:hidden bg-gradient-to-tr from-black/85 via-black/70 to-black/80" aria-hidden="true" />
@@ -58,23 +58,18 @@ export function Login() {
           <div
             className="absolute inset-0 bg-cover bg-center"
             style={{
-              backgroundImage: "url('public/Taller_fabi2.png')",
+              backgroundImage: "url('public/Fondo_login.webp')",
             }}
           />
           <div className="absolute inset-0 bg-gradient-to-tr from-black/80 via-black/55 to-black/70" />
           <div className="absolute inset-0 p-10 flex flex-col justify-end">
-            <div className="max-w-xl">
-              <div className="text-2xl font-semibold tracking-tight">OreStock</div>
-              <div className="pt-2 text-sm text-zinc-300">
-                Gestion de stock y ventas para el taller. Acceso solo para personal autorizado.
-              </div>
-            </div>
+            <div className="max-w-xl"></div>
           </div>
         </div>
 
         <div className="flex items-center justify-center px-4 py-10">
           <div className="w-full max-w-md">
-            <div className="rounded-3xl border border-[var(--border)] bg-[rgba(24,24,27,0.72)] backdrop-blur px-6 py-7 shadow-[0_30px_90px_rgba(0,0,0,0.55)]">
+            <div className="rounded-3xl border border-[var(--border)] bg-[rgba(24,24,27,0.40)] lg:bg-[rgba(24,24,27,0.72)] backdrop-blur px-6 py-7 shadow-[0_30px_90px_rgba(0,0,0,0.55)]">
               <div className="pb-6">
                 <div className="text-lg font-semibold">Iniciar sesion</div>
                 <div className="text-xs text-[var(--muted)] pt-1">Ingresa con tu email y password.</div>
@@ -131,8 +126,8 @@ export function Login() {
             </div>
 
             <div className="pt-6 text-center text-xs text-zinc-500">
-              <span className="lg:hidden">OreStock</span>
-              <span className="hidden lg:inline">Panel de acceso</span>
+              <span className="lg:hidden">PipstopPRO</span>
+              <span className="hidden lg:inline">PipstopPRO</span>
             </div>
           </div>
         </div>

@@ -25,6 +25,7 @@ export function AdminUsuarios() {
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [resetPwdTarget, setResetPwdTarget] = useState(null)
   const [resetPwdValue, setResetPwdValue] = useState('')
+  const [pendingEdit, setPendingEdit] = useState(null)
   const [addForm, setAddForm] = useState({ nombre: '', email: '', password: '', rol: 'Vendedor' })
 
   async function load() {
@@ -74,6 +75,17 @@ export function AdminUsuarios() {
     } catch (err) {
       toast.error('No se pudo actualizar', { description: err.message })
     }
+  }
+
+  function stageEdit(id, patch) {
+    setPendingEdit({ id, patch })
+  }
+
+  async function confirmEdit() {
+    if (!pendingEdit) return
+    const { id, patch } = pendingEdit
+    await handleUpdate(id, patch)
+    setPendingEdit(null)
   }
 
   async function confirmDelete() {
@@ -156,7 +168,7 @@ export function AdminUsuarios() {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button variant="primary" onClick={handleCreate}>Crear</Button>
-                  <Button variant="ghost" onClick={() => setAddOpen(false)}>Cancelar</Button>
+                  <Button variant="secondary" onClick={() => setAddOpen(false)}>Cancelar</Button>
                 </div>
               </CardBody>
             </motion.div>
@@ -231,7 +243,7 @@ export function AdminUsuarios() {
                             defaultValue={u.nombre}
                             onBlur={(e) => {
                               const v = e.target.value.trim()
-                              if (v && v !== u.nombre) handleUpdate(u.id, { nombre: v })
+                              if (v && v !== u.nombre) stageEdit(u.id, { nombre: v })
                             }}
                           />
                         </div>
@@ -242,7 +254,7 @@ export function AdminUsuarios() {
                             type="email"
                             onBlur={(e) => {
                               const v = e.target.value.trim().toLowerCase()
-                              if (v && v !== u.email) handleUpdate(u.id, { email: v })
+                              if (v && v !== u.email) stageEdit(u.id, { email: v })
                             }}
                           />
                         </div>
@@ -251,7 +263,7 @@ export function AdminUsuarios() {
                           <Select
                             defaultValue={u.rol}
                             onChange={(e) => {
-                              if (e.target.value !== u.rol) handleUpdate(u.id, { rol: e.target.value })
+                              if (e.target.value !== u.rol) stageEdit(u.id, { rol: e.target.value })
                             }}
                           >
                             {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
@@ -282,7 +294,7 @@ export function AdminUsuarios() {
             : '¿Estás seguro de que deseas reactivar este usuario?'}
         </div>
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={() => setDeleteTarget(null)}>Cancelar</Button>
+          <Button variant="secondary" onClick={() => setDeleteTarget(null)}>Cancelar</Button>
           <Button variant="danger" onClick={confirmDelete}>
             {users.find((u) => u.id === deleteTarget)?.activo ? 'Desactivar' : 'Activar'}
           </Button>
@@ -307,8 +319,22 @@ export function AdminUsuarios() {
           />
         </div>
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={() => { setResetPwdTarget(null); setResetPwdValue('') }}>Cancelar</Button>
+          <Button variant="secondary" onClick={() => { setResetPwdTarget(null); setResetPwdValue('') }}>Cancelar</Button>
           <Button variant="primary" onClick={confirmResetPwd}>Guardar</Button>
+        </div>
+      </Modal>
+
+      <Modal
+        open={pendingEdit !== null}
+        onClose={() => setPendingEdit(null)}
+        title="Confirmar cambios"
+      >
+        <div className="text-sm text-[var(--muted)] pb-4">
+          ¿Deseas guardar los cambios realizados a este usuario?
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" onClick={() => setPendingEdit(null)}>Cancelar</Button>
+          <Button variant="primary" onClick={confirmEdit}>Guardar cambios</Button>
         </div>
       </Modal>
     </div>

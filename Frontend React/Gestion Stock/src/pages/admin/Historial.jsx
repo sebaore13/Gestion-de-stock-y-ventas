@@ -207,8 +207,8 @@ export function AdminHistorial() {
             </div>
           </div>
 
-          <div className="no-print flex flex-col lg:flex-row flex-wrap gap-3">
-            <div className="flex flex-col sm:flex-row flex-wrap gap-3 flex-1 min-w-0">
+          <div className="no-print space-y-3">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-3">
               <div className="flex flex-col sm:flex-row gap-3 flex-1 min-w-0">
                 <div className="space-y-1 flex-1 min-w-0">
                   <div className="text-xs text-zinc-400">Desde</div>
@@ -225,11 +225,25 @@ export function AdminHistorial() {
                 <Button variant="secondary" onClick={setPresetThisMonth}>Este mes</Button>
               </div>
             </div>
-            <div className="flex items-center gap-3 rounded-2xl border border-[rgba(255,255,255,0.06)] bg-white/3 px-4 py-3 shrink-0 self-start">
-              <span className="text-xs text-[var(--muted)]">Ventas</span>
-              <span className="text-sm text-zinc-100 font-semibold">{resumen.totalVentas}</span>
-              <span className="text-xs text-[var(--muted)]">Mov</span>
-              <span className="text-sm text-zinc-100 font-semibold">{resumen.totalMov}</span>
+            <div
+              className="w-full sm:w-fit max-w-full flex flex-wrap items-center gap-x-4 gap-y-1.5"
+            >
+              <div className="flex items-center gap-2 rounded-2xl border border-[rgba(255,255,255,0.06)] bg-white/3 px-3 py-2">
+                <div className="flex items-baseline gap-1.5 whitespace-nowrap">
+                  <span className="text-[11px] text-[var(--muted)]">Ventas</span>
+                  <span className="text-sm text-zinc-100 font-semibold tabular-nums">{resumen.totalVentas}</span>
+                </div>
+                <div className="h-4 w-px bg-[rgba(255,255,255,0.10)]" aria-hidden="true" />
+                <div className="flex items-baseline gap-1.5 whitespace-nowrap">
+                  <span className="text-[11px] text-[var(--muted)]">Mov</span>
+                  <span className="text-sm text-zinc-100 font-semibold tabular-nums">{resumen.totalMov}</span>
+                </div>
+                <div className="h-4 w-px bg-[rgba(255,255,255,0.10)]" aria-hidden="true" />
+                <div className="flex items-baseline gap-1.5 whitespace-nowrap">
+                  <span className="text-[11px] text-[var(--muted)]">Total</span>
+                  <span className="text-sm text-zinc-100 font-semibold tabular-nums">$ {new Intl.NumberFormat('es-CL').format(resumen.totalCLP)}</span>
+                </div>
+              </div>
             </div>
           </div>
         </CardBody>
