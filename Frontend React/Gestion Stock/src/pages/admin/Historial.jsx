@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../../services/api'
 import { Badge } from '../../components/atoms/Badge'
 import { Card, CardBody, CardHeader } from '../../components/atoms/Card'
@@ -29,15 +29,16 @@ function variantTipo(tipo) {
 }
 
 export function AdminHistorial() {
-  const [movements, setMovements] = useState([])
   const [sales, setSales] = useState([])
-  const [q, setQ] = useState('')
+  const [movements, setMovements] = useState([])
+  const [qMov, setQMov] = useState('')
   const [tipo, setTipo] = useState('')
   const [qSales, setQSales] = useState('')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [loading, setLoading] = useState(false)
   const [loadError, setLoadError] = useState('')
+  const loadSeq = useRef(0)
 
   function setPresetToday() {
     const d = new Date()
@@ -65,25 +66,31 @@ export function AdminHistorial() {
   }
 
   async function load() {
+    const seq = ++loadSeq.current
     setLoading(true)
     try {
       const params = new URLSearchParams()
       if (from) params.set('from', from)
       if (to) params.set('to', to)
       params.set('limit', '500')
+      params.set('includeItems', '1')
       const qs = params.toString()
-      const [m, s] = await Promise.all([
-        api.get(`/movements?${qs}`),
+      const [s, m] = await Promise.all([
         api.get(`/sales?${qs}`),
+        api.get(`/movements?${qs}`),
       ])
-      setMovements(m.movements || [])
+      if (seq !== loadSeq.current) return
+
       setSales(s.sales || [])
+      setMovements(m.movements || [])
       setLoadError('')
     } catch (err) {
-      setMovements([])
+      if (seq !== loadSeq.current) return
       setSales([])
+      setMovements([])
       setLoadError(err?.message || 'Error de conexion con el servidor')
     } finally {
+      if (seq !== loadSeq.current) return
       setLoading(false)
     }
   }
@@ -101,14 +108,15 @@ export function AdminHistorial() {
 
     autoTable(doc, {
       startY: 78,
-      head: [['Fecha', 'Vendedor', 'Rol', 'Metodo', 'Otros', 'Total', 'Nota']],
+      head: [['Venta', 'Fecha', 'Vendedor', 'Metodo', 'Otros', 'Total', 'Items', 'Nota']],
       body: saleRows.map((s) => [
+        `#${s.id}`,
         new Date(s.fecha).toLocaleString('es-CL'),
         s.usuarioNombre ?? `ID ${s.usuarioId}`,
-        s.usuarioRol ?? 'N/A',
         s.metodoPago ?? 'N/A',
         String(Number(s.otrosCargos) || 0),
         String(Number(s.total) || 0),
+        (s.items || []).map((it) => `${it.nombre_snapshot} x${it.cantidad}`).join(' | '),
         s.nota || '',
       ]),
       styles: { fontSize: 8, cellPadding: 3 },
@@ -123,7 +131,7 @@ export function AdminHistorial() {
     autoTable(doc, {
       startY: afterSalesY + 10,
       head: [['Fecha', 'Tipo', 'Producto', 'Codigo', 'Cantidad', 'Usuario']],
-      body: rows.map((m) => [
+      body: movementRows.map((m) => [
         new Date(m.fecha).toLocaleString('es-CL'),
         m.tipo,
         m.productoNombre ?? 'Producto eliminado',
@@ -141,34 +149,38 @@ export function AdminHistorial() {
   }
 
   useEffect(() => {
-    if (!from && !to) setPresetToday()
+    // Importante: evita doble request inicial (1) render con from/to vacios y (2) luego preset hoy.
+    // Seteamos el rango una sola vez y el loader corre cuando el rango ya esta listo.
+    setPresetToday()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
+    if (!from || !to) return
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [from, to])
-
-  const rows = useMemo(() => {
-    const needle = q.trim().toLowerCase()
-    return movements
-      .filter((m) => (tipo ? m.tipo === tipo : true))
-      .filter((m) => {
-        if (!needle) return true
-        return `${m.tipo} ${m.cantidad} ${m.productoNombre ?? ''} ${m.productoCodigo ?? ''} ${m.usuarioNombre ?? ''}`
-          .toLowerCase().includes(needle)
-      })
-  }, [movements, q, tipo])
 
   const saleRows = useMemo(() => {
     const needle = qSales.trim().toLowerCase()
     if (!needle) return sales
     return sales.filter((s) => {
-      return `${s.id} ${s.usuarioNombre ?? ''} ${s.usuarioRol ?? ''} ${s.metodoPago ?? ''} ${s.nota ?? ''} ${s.total ?? ''}`
+      const itemsText = (s.items || []).map((it) => `${it.nombre_snapshot} ${it.codigo_snapshot} ${it.cantidad}`).join(' ')
+      return `${s.id} ${s.usuarioNombre ?? ''} ${s.usuarioRol ?? ''} ${s.metodoPago ?? ''} ${s.nota ?? ''} ${s.total ?? ''} ${itemsText}`
         .toLowerCase().includes(needle)
     })
   }, [sales, qSales])
+
+  const movementRows = useMemo(() => {
+    const needle = qMov.trim().toLowerCase()
+    return movements
+      .filter((m) => (tipo ? m.tipo === tipo : true))
+      .filter((m) => {
+        if (!needle) return true
+        return `${m.tipo} ${m.cantidad} ${m.productoNombre ?? ''} ${m.productoCodigo ?? ''} ${m.usuarioNombre ?? ''} ${m.motivo ?? ''} ${m.nota ?? ''}`
+          .toLowerCase().includes(needle)
+      })
+  }, [movements, qMov, tipo])
 
   const resumen = useMemo(() => {
     const totalVentas = sales.length
@@ -183,7 +195,7 @@ export function AdminHistorial() {
         <CardHeader>
           <div>
             <div className="text-sm font-semibold">Reporte</div>
-            <div className="text-xs text-[var(--muted)] pt-1">Filtra por rango de fechas (ventas + movimientos).</div>
+            <div className="text-xs text-[var(--muted)] pt-1">Filtra por rango de fechas (ventas).</div>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="secondary" className="print:hidden" onClick={downloadPdf} disabled={loading}>
@@ -202,7 +214,7 @@ export function AdminHistorial() {
               Rango: {from || 'N/A'} a {to || 'N/A'}
             </div>
             <div className="text-xs text-zinc-600 pt-1">
-              Ventas: {resumen.totalVentas} · Movimientos: {resumen.totalMov} · Total ventas: ${' '}
+              Ventas: {resumen.totalVentas} · Total ventas: ${' '}
               {new Intl.NumberFormat('es-CL').format(resumen.totalCLP)}
             </div>
           </div>
@@ -252,8 +264,8 @@ export function AdminHistorial() {
       <Card>
         <CardHeader>
           <div>
-            <div className="text-sm font-semibold">Ventas</div>
-            <div className="text-xs text-[var(--muted)] pt-1">Todas las ventas en el rango.</div>
+            <div className="text-sm font-semibold">Historial de ventas</div>
+            <div className="text-xs text-[var(--muted)] pt-1">Cada venta se muestra como una transaccion con sus productos.</div>
           </div>
           <Badge variant="neutral">$ {new Intl.NumberFormat('es-CL').format(resumen.totalCLP)}</Badge>
         </CardHeader>
@@ -261,37 +273,57 @@ export function AdminHistorial() {
           <div className="pb-4">
             <SearchBar value={qSales} onChange={(e) => setQSales(e.target.value)} placeholder="Buscar ventas por usuario, metodo, nota, total..." />
           </div>
-          <div className="overflow-auto rounded-2xl border border-[rgba(255,255,255,0.06)]">
-            <table className="w-full text-sm whitespace-nowrap">
-              <thead className="bg-white/3">
-                <tr className="text-left text-xs uppercase tracking-[0.14em] text-zinc-400">
-                  <th className="px-4 py-3">Fecha</th>
-                  <th className="px-4 py-3">Vendedor</th>
-                  <th className="px-4 py-3">Metodo</th>
-                  <th className="px-4 py-3">Otros</th>
-                  <th className="px-4 py-3">Total</th>
-                  <th className="px-4 py-3">Nota</th>
-                </tr>
-              </thead>
-              <tbody>
-                {saleRows.map((s) => (
-                  <tr key={s.id} className="border-t border-[rgba(255,255,255,0.06)]">
-                    <td className="px-4 py-3 text-zinc-300">{new Date(s.fecha).toLocaleString('es-CL')}</td>
-                    <td className="px-4 py-3">
-                      <div className="text-zinc-100">{s.usuarioNombre ?? `ID ${s.usuarioId}`}</div>
-                      <div className="text-xs text-[var(--muted)] pt-0.5">{s.usuarioRol ?? 'N/A'}</div>
-                    </td>
-                    <td className="px-4 py-3 text-zinc-100">{s.metodoPago ?? 'N/A'}</td>
-                    <td className="px-4 py-3 text-zinc-100">{new Intl.NumberFormat('es-CL').format(Number(s.otrosCargos) || 0)}</td>
-                    <td className="px-4 py-3 text-zinc-100 font-semibold">{new Intl.NumberFormat('es-CL').format(Number(s.total) || 0)}</td>
-                    <td className="px-4 py-3 text-[var(--muted)] truncate max-w-[180px]">{s.nota || '-'}</td>
-                  </tr>
-                ))}
-                {saleRows.length === 0 ? (
-                  <tr><td className="px-4 py-10 text-[var(--muted)]" colSpan={6}>Sin resultados.</td></tr>
-                ) : null}
-              </tbody>
-            </table>
+          <div className="space-y-2">
+            {saleRows.map((s) => (
+              <div key={s.id} className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-white/3 px-4 py-4">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="text-sm font-semibold text-zinc-100">Venta #{s.id}</div>
+                      <Badge variant="neutral">{new Date(s.fecha).toLocaleString('es-CL')}</Badge>
+                    </div>
+                    <div className="text-xs text-[var(--muted)] pt-1">
+                      {s.usuarioNombre ?? `ID ${s.usuarioId}`} · {s.usuarioRol ?? 'N/A'} · {s.metodoPago ?? 'N/A'}
+                    </div>
+                    {s.nota ? <div className="text-xs text-[var(--muted)] pt-1 truncate">Nota: {s.nota}</div> : null}
+                  </div>
+                  <div className="shrink-0">
+                    <div className="text-xs text-zinc-400">Total</div>
+                    <div className="text-lg font-semibold text-zinc-100 tabular-nums">
+                      $ {new Intl.NumberFormat('es-CL').format(Number(s.total) || 0)}
+                    </div>
+                    <div className="text-[11px] text-[var(--muted)]">
+                      Otros: {new Intl.NumberFormat('es-CL').format(Number(s.otrosCargos) || 0)}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-3 border-t border-[rgba(255,255,255,0.06)]" />
+                <div className="pt-3">
+                  <div className="text-xs text-zinc-400 pb-2">Productos</div>
+                  <div className="space-y-2">
+                    {(s.items || []).map((it) => (
+                      <div key={it.id} className="flex items-center justify-between gap-4">
+                        <div className="min-w-0">
+                          <div className="text-sm text-zinc-100 truncate">{it.nombre_snapshot}</div>
+                          <div className="text-xs text-[var(--muted)] truncate">{it.codigo_snapshot}</div>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <div className="text-sm text-zinc-100 font-medium tabular-nums">x{it.cantidad}</div>
+                          <div className="text-xs text-[var(--muted)] tabular-nums">$ {new Intl.NumberFormat('es-CL').format(Number(it.precio_snapshot) || 0)}</div>
+                        </div>
+                      </div>
+                    ))}
+                    {(s.items || []).length === 0 ? (
+                      <div className="text-sm text-[var(--muted)]">Sin items.</div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            ))}
+            {saleRows.length === 0 ? (
+              <div className="py-6 text-sm text-[var(--muted)]">Sin resultados.</div>
+            ) : null}
           </div>
         </CardBody>
       </Card>
@@ -299,14 +331,14 @@ export function AdminHistorial() {
       <Card>
         <CardHeader>
           <div>
-            <div className="text-sm font-semibold">Historial</div>
-            <div className="text-xs text-[var(--muted)] pt-1">Movimientos del sistema (rango).</div>
+            <div className="text-sm font-semibold">Movimientos</div>
+            <div className="text-xs text-[var(--muted)] pt-1">Historial de cambios de stock (ingresos/ajustes/salidas).</div>
           </div>
           <Badge variant="neutral">{movements.length}</Badge>
         </CardHeader>
         <CardBody>
           <div className="flex flex-col sm:flex-row flex-wrap gap-3 pb-4">
-            <SearchBar value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por producto, usuario, tipo..." className="flex-1 min-w-0" />
+            <SearchBar value={qMov} onChange={(e) => setQMov(e.target.value)} placeholder="Buscar por producto, usuario, tipo..." className="flex-1 min-w-0" />
             <div className="space-y-1 shrink-0">
               <div className="text-xs text-zinc-400">Tipo</div>
               <Select value={tipo} onChange={(e) => setTipo(e.target.value)}>
@@ -330,7 +362,7 @@ export function AdminHistorial() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((m) => (
+                {movementRows.map((m) => (
                   <tr key={m.id} className="border-t border-[rgba(255,255,255,0.06)]">
                     <td className="px-4 py-3 text-zinc-300">{new Date(m.fecha).toLocaleString('es-CL')}</td>
                     <td className="px-4 py-3"><Badge variant={variantTipo(m.tipo)}>{labelTipo(m.tipo)}</Badge></td>
@@ -345,7 +377,7 @@ export function AdminHistorial() {
                     </td>
                   </tr>
                 ))}
-                {rows.length === 0 ? (
+                {movementRows.length === 0 ? (
                   <tr><td className="px-4 py-10 text-[var(--muted)]" colSpan={5}>Sin resultados.</td></tr>
                 ) : null}
               </tbody>

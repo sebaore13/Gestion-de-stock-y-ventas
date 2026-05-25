@@ -4,21 +4,15 @@ import { Card, CardBody, CardHeader } from '../components/atoms/Card'
 import { Badge } from '../components/atoms/Badge'
 import { SearchBar } from '../components/molecules/SearchBar'
 
-function formatDate(iso) {
-  return new Intl.DateTimeFormat('es-CL', {
-    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
-  }).format(new Date(iso))
-}
-
 export function Historial() {
   const [q, setQ] = useState('')
-  const [movements, setMovements] = useState([])
+  const [sales, setSales] = useState([])
   const [loadError, setLoadError] = useState('')
 
   useEffect(() => {
-    api.get('/movements?limit=200')
+    api.get('/sales?limit=200&includeItems=1')
       .then((res) => {
-        setMovements(res.movements || [])
+        setSales(res.sales || [])
         setLoadError('')
       })
       .catch((err) => {
@@ -28,21 +22,20 @@ export function Historial() {
 
   const rows = useMemo(() => {
     const needle = q.trim().toLowerCase()
-    const base = movements.map((m) => ({
-      id: m.id, tipo: m.tipo, cantidad: m.cantidad, fecha: m.fecha,
-      producto: m.productoNombre ? `${m.productoNombre} (${m.productoCodigo})` : `ID ${m.productoId}`,
-      usuario: m.usuarioNombre || `ID ${m.usuarioId}`,
-    }))
-    if (!needle) return base
-    return base.filter((r) => `${r.tipo} ${r.producto} ${r.usuario}`.toLowerCase().includes(needle))
-  }, [movements, q])
+    if (!needle) return sales
+    return sales.filter((s) => {
+      const itemsText = (s.items || []).map((it) => `${it.nombre_snapshot} ${it.codigo_snapshot} ${it.cantidad}`).join(' ')
+      return `${s.id} ${s.usuarioNombre ?? ''} ${s.metodoPago ?? ''} ${s.nota ?? ''} ${s.total ?? ''} ${itemsText}`
+        .toLowerCase().includes(needle)
+    })
+  }, [sales, q])
 
   return (
     <Card>
       <CardHeader>
         <div>
           <div className="text-sm font-semibold">Historial</div>
-          <div className="text-xs text-[var(--muted)] pt-1">Movimientos del sistema.</div>
+          <div className="text-xs text-[var(--muted)] pt-1">Tus ventas (transacciones) con detalle de productos.</div>
         </div>
         <Badge variant="neutral">{rows.length}</Badge>
       </CardHeader>
@@ -51,36 +44,57 @@ export function Historial() {
           <div className="mb-4 rounded-xl bg-red-400/10 text-red-300 text-xs px-3 py-2">{loadError}</div>
         ) : null}
         <div className="pb-4">
-          <SearchBar value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar movimientos..." />
+          <SearchBar value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar ventas por producto, metodo, nota..." />
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-[var(--muted)]">
-                <th className="py-2 pr-4 font-medium">Tipo</th>
-                <th className="py-2 pr-4 font-medium">Producto</th>
-                <th className="py-2 pr-4 font-medium">Cant.</th>
-                <th className="py-2 pr-4 font-medium">Fecha</th>
-                <th className="py-2 pr-0 font-medium">Usuario</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id} className="border-t border-[rgba(255,255,255,0.06)]">
-                  <td className="py-3 pr-4">
-                    <Badge variant={r.tipo === 'INGRESO' ? 'success' : r.tipo === 'SALIDA' ? 'info' : 'danger'}>{r.tipo}</Badge>
-                  </td>
-                  <td className="py-3 pr-4 text-zinc-100">{r.producto}</td>
-                  <td className="py-3 pr-4 text-zinc-100 font-medium">{r.cantidad}</td>
-                  <td className="py-3 pr-4 text-[var(--muted)]">{formatDate(r.fecha)}</td>
-                  <td className="py-3 pr-0 text-[var(--muted)]">{r.usuario}</td>
-                </tr>
-              ))}
-              {rows.length === 0 ? (
-                <tr><td colSpan={5} className="py-6 text-sm text-[var(--muted)]">Sin resultados.</td></tr>
-              ) : null}
-            </tbody>
-          </table>
+        <div className="space-y-2">
+          {rows.map((s) => (
+            <div key={s.id} className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-white/3 px-4 py-4">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="text-sm font-semibold text-zinc-100">Venta #{s.id}</div>
+                    <Badge variant="neutral">{new Date(s.fecha).toLocaleString('es-CL')}</Badge>
+                  </div>
+                  <div className="text-xs text-[var(--muted)] pt-1">{s.metodoPago ?? 'N/A'}</div>
+                  {s.nota ? <div className="text-xs text-[var(--muted)] pt-1 truncate">Nota: {s.nota}</div> : null}
+                </div>
+                <div className="shrink-0">
+                  <div className="text-xs text-zinc-400">Total</div>
+                  <div className="text-lg font-semibold text-zinc-100 tabular-nums">
+                    $ {new Intl.NumberFormat('es-CL').format(Number(s.total) || 0)}
+                  </div>
+                  <div className="text-[11px] text-[var(--muted)]">
+                    Otros: {new Intl.NumberFormat('es-CL').format(Number(s.otrosCargos) || 0)}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-3 border-t border-[rgba(255,255,255,0.06)]" />
+              <div className="pt-3">
+                <div className="text-xs text-zinc-400 pb-2">Productos</div>
+                <div className="space-y-2">
+                  {(s.items || []).map((it) => (
+                    <div key={it.id} className="flex items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="text-sm text-zinc-100 truncate">{it.nombre_snapshot}</div>
+                        <div className="text-xs text-[var(--muted)] truncate">{it.codigo_snapshot}</div>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <div className="text-sm text-zinc-100 font-medium tabular-nums">x{it.cantidad}</div>
+                        <div className="text-xs text-[var(--muted)] tabular-nums">$ {new Intl.NumberFormat('es-CL').format(Number(it.precio_snapshot) || 0)}</div>
+                      </div>
+                    </div>
+                  ))}
+                  {(s.items || []).length === 0 ? (
+                    <div className="text-sm text-[var(--muted)]">Sin items.</div>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          ))}
+          {rows.length === 0 ? (
+            <div className="py-6 text-sm text-[var(--muted)]">Sin resultados.</div>
+          ) : null}
         </div>
       </CardBody>
     </Card>

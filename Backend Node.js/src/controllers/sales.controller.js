@@ -160,6 +160,7 @@ async function list(req, res) {
   const limit = Math.min(200, Math.max(1, toInt(req.query.limit) || 50))
   const from = String(req.query.from || '').trim()
   const to = String(req.query.to || '').trim()
+  const includeItems = String(req.query.includeItems || '').trim() === '1'
   let usuarioId = isAdmin && req.query.usuarioId !== undefined ? toInt(req.query.usuarioId) : null
 
   const isDateOnly = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s)
@@ -199,7 +200,36 @@ async function list(req, res) {
        LIMIT ?`,
       [...params, limit],
     )
-    res.json({ ok: true, sales: rows })
+
+    if (!includeItems || !rows.length) {
+      return res.json({ ok: true, sales: rows })
+    }
+
+    const saleIds = rows.map((r) => r.id)
+    const [itemRows] = await pool.query(
+      `SELECT si.id, si.saleId, si.productoId,
+              si.codigo_snapshot, si.nombre_snapshot, si.precio_snapshot, si.cantidad
+       FROM sale_items si
+       WHERE si.saleId IN (${saleIds.map(() => '?').join(',')})
+       ORDER BY si.saleId DESC, si.id ASC`,
+      saleIds,
+    )
+
+    const itemsBySaleId = new Map()
+    for (const it of itemRows) {
+      const k = Number(it.saleId)
+      const arr = itemsBySaleId.get(k) || []
+      arr.push(it)
+      itemsBySaleId.set(k, arr)
+    }
+
+    res.json({
+      ok: true,
+      sales: rows.map((s) => ({
+        ...s,
+        items: itemsBySaleId.get(Number(s.id)) || [],
+      })),
+    })
   } catch (err) {
     res.status(500).json({ ok: false, error: mysqlErrorMessage(err) })
   }
