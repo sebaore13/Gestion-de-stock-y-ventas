@@ -46,7 +46,7 @@ export const router = createHashRouter([
           { path: 'categorias', element: <AdminCategorias /> },
           { path: 'usuarios', element: <AdminUsuarios /> },
           { path: 'historial', element: <AdminHistorial /> },
-          { path: 'config', element: <Config /> },
+          // { path: 'config', element: <Config /> },
         ],
       },
     ],

@@ -7,7 +7,6 @@ import {
   History,
   Tags,
   Users,
-  Settings,
   ChevronsLeft,
   ChevronsRight,
 } from 'lucide-react'
@@ -28,11 +27,10 @@ const NAV_ADMIN = [
   { key: 'admin-categorias', label: 'Categorias', icon: Tags, to: '/admin/categorias' },
   { key: 'admin-usuarios', label: 'Usuarios', icon: Users, to: '/admin/usuarios' },
   { key: 'admin-historial', label: 'Historial', icon: History, to: '/admin/historial' },
-  { key: 'admin-config', label: 'Configuracion', icon: Settings, to: '/admin/config' },
 ]
 
 export function Sidebar({
-  brand = 'OreStock',
+  brand = 'PitStopPro',
   basePath = '',
   variant = 'fixed',
   open = false,
@@ -98,10 +96,10 @@ export function Sidebar({
           </button>
         </div>
 
-        <nav className={cn('px-3 pb-4', collapsed && 'px-2')}>
-          <div className="text-[11px] uppercase tracking-[0.18em] text-zinc-500 px-2 pb-2">
-            Menu
-          </div>
+        <nav className="px-3 pb-4">
+          {collapsed ? null : (
+            <div className="text-[11px] uppercase tracking-[0.18em] text-zinc-500 px-2 pb-2">Menu</div>
+          )}
           <div className="flex flex-col gap-1">
             {nav.map((item) => (
               <SidebarItem
@@ -117,12 +115,19 @@ export function Sidebar({
           </div>
         </nav>
 
-        <div className={cn('mt-auto px-4 pb-5', collapsed && 'px-2')}>
-          <div className={cn('rounded-2xl border border-zinc-900 bg-white/3 px-4 py-4', collapsed && 'px-2')}>
-            <div className={cn('flex items-center gap-3', collapsed && 'justify-center')}>
-              <div className="h-10 w-10 rounded-2xl border border-white/5 bg-white/4 grid place-items-center text-zinc-100">
-                <span className="text-xs font-semibold">{(brand?.slice(0, 2) ?? 'OS').toUpperCase()}</span>
+        <div className={cn('mt-auto px-3 pb-5', collapsed && 'px-2')}>
+          <div className={cn('pt-4 border-t border-zinc-900/80')}>
+            <div className={cn('flex items-center gap-3 overflow-hidden', collapsed && 'justify-center')}>
+              <div className="h-10 w-10 shrink-0 grid place-items-center overflow-hidden">
+                <img
+                  src={`${import.meta.env.BASE_URL}PitStop-icon.webp`}
+                  alt={`${brand} logo`}
+                  className="h-10 w-10 object-contain"
+                  loading="lazy"
+                  decoding="async"
+                />
               </div>
+
               <AnimatePresence initial={false}>
                 {collapsed ? null : (
                   <motion.div
@@ -133,7 +138,6 @@ export function Sidebar({
                     className="min-w-0"
                   >
                     <div className="text-sm font-semibold leading-tight truncate">{brand}</div>
-                    <div className="text-xs text-[var(--muted)] leading-tight truncate">Logo</div>
                   </motion.div>
                 )}
               </AnimatePresence>

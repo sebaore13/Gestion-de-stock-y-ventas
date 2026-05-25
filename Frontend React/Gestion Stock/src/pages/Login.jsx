@@ -126,8 +126,8 @@ export function Login() {
             </div>
 
             <div className="pt-6 text-center text-xs text-zinc-500">
-              <span className="lg:hidden">PipstopPRO</span>
-              <span className="hidden lg:inline">PipstopPRO</span>
+              <span className="lg:hidden">PitStopPro</span>
+              <span className="hidden lg:inline">PitStopPro</span>
             </div>
           </div>
         </div>

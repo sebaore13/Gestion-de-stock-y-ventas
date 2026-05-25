@@ -17,7 +17,7 @@ export function MainLayout({ brand, title, topbarRight, basePath = '', children 
           <Topbar
             title={title}
             rightSlot={topbarRight}
-            onOpenMenu={() => setMobileSidebarOpen(true)}
+            onOpenMenu={() => setMobileSidebarOpen((v) => !v)}
           />
           <main className={cn('max-w-[1200px] mx-auto px-5 md:px-8 py-7 md:py-9')}>{children}</main>
         </div>

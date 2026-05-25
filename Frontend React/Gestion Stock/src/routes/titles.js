@@ -18,9 +18,7 @@ export function titleForPath(pathname) {
       return 'Admin · Usuarios'
     case '/admin/historial':
       return 'Admin · Historial'
-    case '/admin/config':
-      return 'Admin · Configuracion'
     default:
-      return 'OreStock'
+      return 'PitStopPro'
   }
 }

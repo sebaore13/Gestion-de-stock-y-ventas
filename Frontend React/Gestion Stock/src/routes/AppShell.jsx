@@ -8,7 +8,7 @@ export function AppShell() {
 
   return (
     <>
-      <MainLayout brand="OreStock" title={titleForPath(location.pathname)}>
+      <MainLayout brand="PitStopPro" title={titleForPath(location.pathname)}>
         <Outlet />
       </MainLayout>
       <Toaster />

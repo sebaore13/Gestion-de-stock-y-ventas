@@ -16,7 +16,7 @@ export function AdminShell() {
 
   return (
     <>
-      <MainLayout brand="OreStock" title={adminTitleFor(location.pathname)} basePath="/admin">
+      <MainLayout brand="PitStopPro" title={adminTitleFor(location.pathname)} basePath="/admin">
         <Outlet />
       </MainLayout>
       <Toaster />
