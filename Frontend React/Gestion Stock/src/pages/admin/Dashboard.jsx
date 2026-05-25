@@ -80,7 +80,7 @@ export function AdminDashboard() {
                     <div className="flex items-center gap-2 text-zinc-100 font-semibold"><Users size={16} /> Usuarios</div>
                     <ArrowRight size={16} className="text-zinc-400" />
                   </div>
-                  <div className="text-xs text-[var(--muted)] pt-1">Crear, editar roles y administrar acceso.</div>
+                  <div className="text-xs text-[var(--muted)] pt-1">Crear y administrar acceso.</div>
                 </div>
               </Link>
               <Link to="/admin/productos" className="block">
@@ -89,7 +89,7 @@ export function AdminDashboard() {
                     <div className="flex items-center gap-2 text-zinc-100 font-semibold"><Boxes size={16} /> Productos</div>
                     <ArrowRight size={16} className="text-zinc-400" />
                   </div>
-                  <div className="text-xs text-[var(--muted)] pt-1">CRUD de catalogo, precios y stock minimo.</div>
+                  <div className="text-xs text-[var(--muted)] pt-1">Crear y administrar productos.</div>
                 </div>
               </Link>
               <Link to="/admin/historial" className="block">

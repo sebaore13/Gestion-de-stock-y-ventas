@@ -8,13 +8,12 @@ import { Card, CardBody, CardHeader } from '../../components/atoms/Card'
 import { Badge } from '../../components/atoms/Badge'
 import { Button } from '../../components/atoms/Button'
 import { Input } from '../../components/atoms/Input'
-import { Select } from '../../components/atoms/Select'
 import { SearchBar } from '../../components/molecules/SearchBar'
 import { Modal } from '../../components/atoms/Modal'
 import { cn } from '../../design/cn'
 import { motionTokens } from '../../design/motion'
 
-const ROLES = ['Administrador', 'Vendedor']
+const CREATE_ROLE = 'Vendedor'
 
 export function AdminUsuarios() {
   const currentUser = useAuthStore((s) => s.user)
@@ -26,7 +25,7 @@ export function AdminUsuarios() {
   const [resetPwdTarget, setResetPwdTarget] = useState(null)
   const [resetPwdValue, setResetPwdValue] = useState('')
   const [pendingEdit, setPendingEdit] = useState(null)
-  const [addForm, setAddForm] = useState({ nombre: '', email: '', password: '', rol: 'Vendedor' })
+  const [addForm, setAddForm] = useState({ nombre: '', email: '', password: '', rol: CREATE_ROLE })
 
   async function load() {
     try {
@@ -46,7 +45,7 @@ export function AdminUsuarios() {
   }, [users, q])
 
   function resetAddForm() {
-    setAddForm({ nombre: '', email: '', password: '', rol: 'Vendedor' })
+    setAddForm({ nombre: '', email: '', password: '', rol: CREATE_ROLE })
   }
 
   async function handleCreate() {
@@ -57,7 +56,7 @@ export function AdminUsuarios() {
     if (!email) { toast.error('Email requerido'); return }
     if (!password || password.length < 8) { toast.error('Contraseña mínimo 8 caracteres'); return }
     try {
-      await api.post('/users', { nombre, email, password, rol: addForm.rol })
+      await api.post('/users', { nombre, email, password, rol: CREATE_ROLE })
       toast.success('Usuario creado')
       resetAddForm()
       setAddOpen(false)
@@ -90,13 +89,28 @@ export function AdminUsuarios() {
 
   async function confirmDelete() {
     if (!deleteTarget) return
+    const target = users.find((u) => u.id === deleteTarget)
+    if (!target) {
+      setDeleteTarget(null)
+      return
+    }
+    if (target.rol === 'Administrador') {
+      toast.error('No se puede eliminar el administrador')
+      setDeleteTarget(null)
+      return
+    }
+    if (target.rol !== 'Vendedor') {
+      toast.error('Solo se pueden eliminar vendedores')
+      setDeleteTarget(null)
+      return
+    }
     try {
-      await api.put(`/users/${deleteTarget}`, { activo: 0 })
-      toast.success('Usuario desactivado')
+      await api.del(`/users/${deleteTarget}`)
+      toast.success('Usuario eliminado')
       setDeleteTarget(null)
       load()
     } catch (err) {
-      toast.error('No se pudo desactivar', { description: err.message })
+      toast.error('No se pudo eliminar', { description: err.message })
     }
   }
 
@@ -157,9 +171,9 @@ export function AdminUsuarios() {
                   </div>
                   <div className="space-y-1">
                     <div className="text-xs text-zinc-400">Rol</div>
-                    <Select value={addForm.rol} onChange={(e) => setAddForm((s) => ({ ...s, rol: e.target.value }))}>
-                      {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-                    </Select>
+                    <div className="h-11 rounded-xl border border-[var(--border)] bg-white/3 px-3 grid items-center text-sm text-zinc-100">
+                      {CREATE_ROLE}
+                    </div>
                   </div>
                   <div className="space-y-1">
                     <div className="text-xs text-zinc-400">Contraseña</div>
@@ -214,14 +228,14 @@ export function AdminUsuarios() {
                   >
                     {editOpenId === u.id ? 'Cerrar edición' : 'Editar'}
                   </Button>
-                  {!isSelf(u.id) ? (
+                  {!isSelf(u.id) && u.rol === 'Vendedor' ? (
                     <Button variant="secondary" size="sm" onClick={() => { setResetPwdTarget(u.id); setResetPwdValue('') }}>
                       Restablecer contraseña
                     </Button>
                   ) : null}
-                  {!isSelf(u.id) ? (
+                  {!isSelf(u.id) && u.rol === 'Vendedor' ? (
                     <Button variant="danger" size="sm" onClick={() => setDeleteTarget(u.id)}>
-                      {u.activo ? 'Desactivar' : 'Activar'}
+                      Eliminar
                     </Button>
                   ) : null}
                 </div>
@@ -247,28 +261,41 @@ export function AdminUsuarios() {
                             }}
                           />
                         </div>
-                        <div className="space-y-1">
-                          <div className="text-xs text-zinc-400">Email</div>
-                          <Input
-                            defaultValue={u.email || ''}
-                            type="email"
-                            onBlur={(e) => {
-                              const v = e.target.value.trim().toLowerCase()
-                              if (v && v !== u.email) stageEdit(u.id, { email: v })
-                            }}
-                          />
-                        </div>
+                        {u.rol === 'Administrador' ? (
+                          <div className="space-y-1">
+                            <div className="text-xs text-zinc-400">Email</div>
+                            <div className="h-11 rounded-xl border border-[var(--border)] bg-white/3 px-3 grid items-center text-sm text-zinc-100 truncate">
+                              {u.email || 'Sin email'}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            <div className="text-xs text-zinc-400">Email</div>
+                            <Input
+                              defaultValue={u.email || ''}
+                              type="email"
+                              onBlur={(e) => {
+                                const v = e.target.value.trim().toLowerCase()
+                                if (v && v !== u.email) stageEdit(u.id, { email: v })
+                              }}
+                            />
+                          </div>
+                        )}
                         <div className="space-y-1 sm:col-span-2">
                           <div className="text-xs text-zinc-400">Rol</div>
-                          <Select
-                            defaultValue={u.rol}
-                            onChange={(e) => {
-                              if (e.target.value !== u.rol) stageEdit(u.id, { rol: e.target.value })
-                            }}
-                          >
-                            {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-                          </Select>
+                          <div className="h-11 rounded-xl border border-[var(--border)] bg-white/3 px-3 grid items-center text-sm text-zinc-100">
+                            {u.rol}
+                          </div>
+                          <div className="text-[11px] text-[var(--muted)] pt-1">Rol fijo (no modificable).</div>
                         </div>
+
+                        {!isSelf(u.id) && u.rol === 'Vendedor' ? (
+                          <div className="sm:col-span-2 pt-1 flex justify-end">
+                            <Button variant="danger" size="sm" onClick={() => setDeleteTarget(u.id)} disabled={pendingEdit !== null}>
+                              Eliminar usuario
+                            </Button>
+                          </div>
+                        ) : null}
                       </div>
                     </motion.div>
                   ) : null}
@@ -286,17 +313,19 @@ export function AdminUsuarios() {
       <Modal
         open={deleteTarget !== null}
         onClose={() => setDeleteTarget(null)}
-        title="Confirmar"
+        title="Eliminar usuario"
       >
         <div className="text-sm text-[var(--muted)] pb-4">
-          {users.find((u) => u.id === deleteTarget)?.activo
-            ? '¿Estás seguro de que deseas desactivar este usuario? Podrás reactivarlo después.'
-            : '¿Estás seguro de que deseas reactivar este usuario?'}
+          ¿Estás seguro de eliminar este usuario?
+          <div className="pt-2 text-zinc-100 font-medium truncate">
+            {users.find((u) => u.id === deleteTarget)?.nombre || 'Usuario'}
+          </div>
+          <div className="pt-2">Esta acción no se puede deshacer.</div>
         </div>
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={() => setDeleteTarget(null)}>Cancelar</Button>
           <Button variant="danger" onClick={confirmDelete}>
-            {users.find((u) => u.id === deleteTarget)?.activo ? 'Desactivar' : 'Activar'}
+            Eliminar
           </Button>
         </div>
       </Modal>

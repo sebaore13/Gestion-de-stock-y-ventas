@@ -11,6 +11,9 @@ function isNonNegativeInt(n) {
 
 function mysqlErrorMessage(err) {
   if (err?.code === 'ER_DUP_ENTRY') return 'Dato duplicado'
+  if (err?.code === 'ER_ROW_IS_REFERENCED_2' || err?.code === 'ER_ROW_IS_REFERENCED') {
+    return 'No se puede eliminar: tiene registros asociados'
+  }
   return err?.message || 'Error DB'
 }
 

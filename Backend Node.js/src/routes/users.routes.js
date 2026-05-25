@@ -8,6 +8,7 @@ const router = Router()
 router.get('/users', requireAuth(), requireRole(['Administrador']), usersController.list)
 router.post('/users', requireAuth(), requireRole(['Administrador']), usersController.create)
 router.put('/users/:id', requireAuth(), requireRole(['Administrador']), usersController.update)
+router.delete('/users/:id', requireAuth(), requireRole(['Administrador']), usersController.remove)
 router.post('/users/:id/reset-password', requireAuth(), requireRole(['Administrador']), usersController.resetPassword)
 
 // Self-service
