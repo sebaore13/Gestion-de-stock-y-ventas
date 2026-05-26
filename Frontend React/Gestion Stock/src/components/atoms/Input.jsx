@@ -13,7 +13,7 @@ export function Input({ className, start, end, ...props }) {
       {start ? <span className="text-[var(--muted)]">{start}</span> : null}
       <input
         className={cn(
-          'w-full bg-transparent border-0 outline-none text-[var(--text)] placeholder:text-[rgba(161,161,170,0.85)]',
+          'w-full bg-transparent border-0 outline-none focus-visible:outline-none text-[var(--text)] placeholder:text-[rgba(161,161,170,0.85)]',
           'text-sm',
         )}
         {...props}

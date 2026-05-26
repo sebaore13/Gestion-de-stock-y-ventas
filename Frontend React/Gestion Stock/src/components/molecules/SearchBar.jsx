@@ -14,7 +14,7 @@ export function SearchBar({ className, ...props }) {
       <Search size={16} className="text-[var(--muted)]" />
       <input
         className={cn(
-          'w-full bg-transparent border-0 outline-none text-[var(--text)] placeholder:text-[rgba(161,161,170,0.85)]',
+          'w-full bg-transparent border-0 outline-none focus-visible:outline-none text-[var(--text)] placeholder:text-[rgba(161,161,170,0.85)]',
           'text-sm',
         )}
         type="search"
