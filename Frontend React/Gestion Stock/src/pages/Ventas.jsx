@@ -43,6 +43,13 @@ function VentasPage() {
   }, [loadCategories])
 
   useEffect(() => {
+    // Al salir de la pagina, no persistir el resumen/carrito.
+    return () => {
+      clearVenta()
+    }
+  }, [clearVenta])
+
+  useEffect(() => {
     const q = query.trim()
     if (!q && !categoria) {
       setResults([])
@@ -110,7 +117,10 @@ function VentasPage() {
     const existing = ventaItems.find((i) => i.productoId === product.id)
     const nextQty = (existing?.cantidad ?? 0) + 1
     setVentaCantidad({ productoId: product.id, cantidad: nextQty })
-    toast.success('Producto agregado', { description: `${product.nombre} (${product.codigo})` })
+    toast.success('Producto agregado', {
+      description: `${product.nombre} (${product.codigo})`,
+      duration: 1000,
+    })
   }
 
   function inc(id) {

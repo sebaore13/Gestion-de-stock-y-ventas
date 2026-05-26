@@ -282,29 +282,40 @@ export function AdminHistorial() {
               <div key={s.id} className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-white/3">
                 <button
                   type="button"
-                  className="w-full text-left px-4 py-4"
+                  className="w-full text-left px-3 py-3 sm:px-4 sm:py-4"
                   aria-expanded={openSaleId === s.id}
                   onClick={() => setOpenSaleId((prev) => (prev === s.id ? null : s.id))}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 sm:gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
                         <div className="text-sm font-semibold text-zinc-100">Venta #{s.id}</div>
-                        <Badge variant="neutral">{new Date(s.fecha).toLocaleString('es-CL')}</Badge>
+                        <div className="flex sm:hidden items-center gap-1">
+                          <div className="text-base font-semibold text-zinc-100 tabular-nums">
+                            $ {new Intl.NumberFormat('es-CL').format(Number(s.total) || 0)}
+                          </div>
+                          <ChevronDown
+                            size={16}
+                            className={openSaleId === s.id ? 'text-zinc-300 transition-transform rotate-180' : 'text-zinc-300 transition-transform'}
+                            aria-hidden="true"
+                          />
+                        </div>
                       </div>
-                      <div className="pt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--muted)]">
-                        <span>{s.usuarioNombre ?? `ID ${s.usuarioId}`}</span>
-                        <span className="text-zinc-500">·</span>
-                        <span>{s.metodoPago ?? 'N/A'}</span>
-                        <span className="text-zinc-500">·</span>
-                        <span>
+                      <div className="pt-1 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-1 sm:gap-x-4 sm:gap-y-1 text-xs text-[var(--muted)]">
+                        <span className="leading-snug">{new Date(s.fecha).toLocaleString('es-CL')}</span>
+                        <span className="hidden sm:inline text-zinc-500">·</span>
+                        <span className="hidden sm:inline">{s.usuarioNombre ?? `ID ${s.usuarioId}`}</span>
+                        <span className="hidden sm:inline text-zinc-500">·</span>
+                        <span className="hidden sm:inline">{s.metodoPago ?? 'N/A'}</span>
+                        <span className="hidden sm:inline text-zinc-500">·</span>
+                        <span className="hidden sm:inline">
                           Productos:{' '}
                           {(s.items || []).reduce((acc, it) => acc + (Number(it.cantidad) || 0), 0)}
                         </span>
                       </div>
                     </div>
 
-                    <div className="shrink-0 flex items-start gap-3">
+                    <div className="hidden sm:flex shrink-0 items-start gap-3">
                       <div className="text-right">
                         <div className="text-xs text-zinc-400">Total</div>
                         <div className="text-lg font-semibold text-zinc-100 tabular-nums">
@@ -330,7 +341,7 @@ export function AdminHistorial() {
                       transition={{ duration: motionTokens.duration.slow, ease: motionTokens.ease.standard }}
                       className="overflow-hidden"
                     >
-                      <div className="px-4 pb-4">
+                      <div className="px-3 pb-3 sm:px-4 sm:pb-4">
                         <div className="border-t border-[rgba(255,255,255,0.06)]" />
                         <div className="pt-3">
                           <div className="text-xs text-zinc-400 pb-2">Productos</div>
@@ -357,7 +368,7 @@ export function AdminHistorial() {
                               Vendedor: {s.usuarioNombre ?? `ID ${s.usuarioId}`} · {s.usuarioRol ?? 'N/A'}
                             </div>
                             <div>
-                              Otros: $ {new Intl.NumberFormat('es-CL').format(Number(s.otrosCargos) || 0)}
+                              Metodo: {s.metodoPago ?? 'N/A'} · Otros: $ {new Intl.NumberFormat('es-CL').format(Number(s.otrosCargos) || 0)}
                             </div>
                             {s.nota ? <div className="sm:col-span-2 truncate">Nota: {s.nota}</div> : null}
                           </div>
