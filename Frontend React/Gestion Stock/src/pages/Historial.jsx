@@ -1,13 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { ChevronDown } from 'lucide-react'
 import { api } from '../services/api'
 import { Card, CardBody, CardHeader } from '../components/atoms/Card'
 import { Badge } from '../components/atoms/Badge'
 import { SearchBar } from '../components/molecules/SearchBar'
+import { motionTokens } from '../design/motion'
 
 export function Historial() {
   const [q, setQ] = useState('')
   const [sales, setSales] = useState([])
   const [loadError, setLoadError] = useState('')
+  const [openSaleId, setOpenSaleId] = useState(null)
 
   useEffect(() => {
     api.get('/sales?limit=200&includeItems=1')
@@ -48,48 +52,86 @@ export function Historial() {
         </div>
         <div className="space-y-2">
           {rows.map((s) => (
-            <div key={s.id} className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-white/3 px-4 py-4">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <div className="text-sm font-semibold text-zinc-100">Venta #{s.id}</div>
-                    <Badge variant="neutral">{new Date(s.fecha).toLocaleString('es-CL')}</Badge>
+            <div key={s.id} className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-white/3">
+              <button
+                type="button"
+                className="w-full text-left px-4 py-4"
+                aria-expanded={openSaleId === s.id}
+                onClick={() => setOpenSaleId((prev) => (prev === s.id ? null : s.id))}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="text-sm font-semibold text-zinc-100">Venta #{s.id}</div>
+                      <Badge variant="neutral">{new Date(s.fecha).toLocaleString('es-CL')}</Badge>
+                    </div>
+                    <div className="pt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--muted)]">
+                      <span>{s.metodoPago ?? 'N/A'}</span>
+                      <span className="text-zinc-500">·</span>
+                      <span>
+                        Productos:{' '}
+                        {(s.items || []).reduce((acc, it) => acc + (Number(it.cantidad) || 0), 0)}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-xs text-[var(--muted)] pt-1">{s.metodoPago ?? 'N/A'}</div>
-                  {s.nota ? <div className="text-xs text-[var(--muted)] pt-1 truncate">Nota: {s.nota}</div> : null}
-                </div>
-                <div className="shrink-0">
-                  <div className="text-xs text-zinc-400">Total</div>
-                  <div className="text-lg font-semibold text-zinc-100 tabular-nums">
-                    $ {new Intl.NumberFormat('es-CL').format(Number(s.total) || 0)}
-                  </div>
-                  <div className="text-[11px] text-[var(--muted)]">
-                    Otros: {new Intl.NumberFormat('es-CL').format(Number(s.otrosCargos) || 0)}
-                  </div>
-                </div>
-              </div>
 
-              <div className="mt-3 border-t border-[rgba(255,255,255,0.06)]" />
-              <div className="pt-3">
-                <div className="text-xs text-zinc-400 pb-2">Productos</div>
-                <div className="space-y-2">
-                  {(s.items || []).map((it) => (
-                    <div key={it.id} className="flex items-center justify-between gap-4">
-                      <div className="min-w-0">
-                        <div className="text-sm text-zinc-100 truncate">{it.nombre_snapshot}</div>
-                        <div className="text-xs text-[var(--muted)] truncate">{it.codigo_snapshot}</div>
-                      </div>
-                      <div className="shrink-0 text-right">
-                        <div className="text-sm text-zinc-100 font-medium tabular-nums">x{it.cantidad}</div>
-                        <div className="text-xs text-[var(--muted)] tabular-nums">$ {new Intl.NumberFormat('es-CL').format(Number(it.precio_snapshot) || 0)}</div>
+                  <div className="shrink-0 flex items-start gap-3">
+                    <div className="text-right">
+                      <div className="text-xs text-zinc-400">Total</div>
+                      <div className="text-lg font-semibold text-zinc-100 tabular-nums">
+                        $ {new Intl.NumberFormat('es-CL').format(Number(s.total) || 0)}
                       </div>
                     </div>
-                  ))}
-                  {(s.items || []).length === 0 ? (
-                    <div className="text-sm text-[var(--muted)]">Sin items.</div>
-                  ) : null}
+                    <ChevronDown
+                      size={18}
+                      className={openSaleId === s.id ? 'text-zinc-300 transition-transform rotate-180 mt-1' : 'text-zinc-300 transition-transform mt-1'}
+                      aria-hidden="true"
+                    />
+                  </div>
                 </div>
-              </div>
+              </button>
+
+              <AnimatePresence initial={false}>
+                {openSaleId === s.id ? (
+                  <motion.div
+                    key="details"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: motionTokens.duration.slow, ease: motionTokens.ease.standard }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-4 pb-4">
+                      <div className="border-t border-[rgba(255,255,255,0.06)]" />
+                      <div className="pt-3">
+                        <div className="text-xs text-zinc-400 pb-2">Productos</div>
+                        <div className="space-y-2">
+                          {(s.items || []).map((it) => (
+                            <div key={it.id} className="flex items-center justify-between gap-4">
+                              <div className="min-w-0">
+                                <div className="text-sm text-zinc-100 truncate">{it.nombre_snapshot}</div>
+                                <div className="text-xs text-[var(--muted)] truncate">{it.codigo_snapshot}</div>
+                              </div>
+                              <div className="shrink-0 text-right">
+                                <div className="text-sm text-zinc-100 font-medium tabular-nums">x{it.cantidad}</div>
+                                <div className="text-xs text-[var(--muted)] tabular-nums">$ {new Intl.NumberFormat('es-CL').format(Number(it.precio_snapshot) || 0)}</div>
+                              </div>
+                            </div>
+                          ))}
+                          {(s.items || []).length === 0 ? (
+                            <div className="text-sm text-[var(--muted)]">Sin items.</div>
+                          ) : null}
+                        </div>
+
+                        <div className="pt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-[var(--muted)]">
+                          <div>Otros: $ {new Intl.NumberFormat('es-CL').format(Number(s.otrosCargos) || 0)}</div>
+                          {s.nota ? <div className="truncate">Nota: {s.nota}</div> : <div />}
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
             </div>
           ))}
           {rows.length === 0 ? (

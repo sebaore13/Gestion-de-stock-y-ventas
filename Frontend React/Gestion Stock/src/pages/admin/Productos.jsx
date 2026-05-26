@@ -20,6 +20,8 @@ export function AdminProductos() {
   const categories = useCatalogStore((s) => s.categories)
   const loadCategories = useCatalogStore((s) => s.loadCategories)
   const [q, setQ] = useState('')
+  const [category, setCategory] = useState('Todas')
+  const [stockFilter, setStockFilter] = useState('Todos')
   const [addOpen, setAddOpen] = useState(false)
   const [editOpenId, setEditOpenId] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
@@ -54,11 +56,31 @@ export function AdminProductos() {
     }
   }, [categories, form.categoriaId])
 
+  const categoryOptions = useMemo(() => {
+    const names = (Array.isArray(categories) ? categories.map((c) => c.nombre) : []).filter(Boolean)
+    const fallback = products.map((p) => p.categoria).filter(Boolean)
+    const set = new Set([...names, ...fallback])
+    return ['Todas', ...Array.from(set).sort((a, b) => a.localeCompare(b))]
+  }, [categories, products])
+
+  useEffect(() => {
+    if (!categoryOptions.includes(category)) setCategory('Todas')
+  }, [categoryOptions, category])
+
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase()
-    if (!needle) return products
-    return products.filter((p) => `${p.codigo} ${p.nombre} ${p.categoria}`.toLowerCase().includes(needle))
-  }, [products, q])
+    return products
+      .filter((p) => {
+        if (category === 'Todas') return true
+        return p.categoria === category
+      })
+      .filter((p) => {
+        if (stockFilter === 'Todos') return true
+        const low = Number(p.stock) <= Number(p.minimo)
+        return stockFilter === 'Bajo' ? low : !low
+      })
+      .filter((p) => (needle ? `${p.codigo} ${p.nombre}`.toLowerCase().includes(needle) : true))
+  }, [products, q, category, stockFilter])
 
   async function handleCreate() {
     if (!form.codigo.trim() || !form.nombre.trim()) {
@@ -227,7 +249,23 @@ export function AdminProductos() {
         </CardHeader>
         <CardBody>
           <div className="pb-4">
-            <SearchBar value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar producto..." />
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_200px_200px] gap-3">
+              <SearchBar
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Buscar por codigo o nombre..."
+              />
+              <Select value={category} onChange={(e) => setCategory(e.target.value)}>
+                {categoryOptions.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </Select>
+              <Select value={stockFilter} onChange={(e) => setStockFilter(e.target.value)}>
+                <option value="Todos">Stock: Todos</option>
+                <option value="Bajo">Stock: Bajo</option>
+                <option value="OK">Stock: OK</option>
+              </Select>
+            </div>
           </div>
 
           <div className="space-y-2">
