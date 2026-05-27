@@ -48,7 +48,7 @@ export function Login() {
     <div className="min-h-screen bg-zinc-950 relative overflow-hidden">
       <div
         className="absolute inset-0 lg:hidden bg-cover bg-center"
-        style={{ backgroundImage: "url('public/Fondo_login_celular.webp')" }}
+        style={{ backgroundImage: "url('/Fondo_login_celular.webp')" }}
         aria-hidden="true"
       />
       <div className="absolute inset-0 lg:hidden bg-gradient-to-tr from-black/85 via-black/70 to-black/80" aria-hidden="true" />
@@ -58,7 +58,7 @@ export function Login() {
           <div
             className="absolute inset-0 bg-cover bg-center"
             style={{
-              backgroundImage: "url('public/Fondo_login.webp')",
+              backgroundImage: "url('/Fondo_login.webp')",
             }}
           />
           <div className="absolute inset-0 bg-gradient-to-tr from-black/80 via-black/55 to-black/70" />

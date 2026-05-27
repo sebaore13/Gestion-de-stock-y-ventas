@@ -1,12 +1,6 @@
 -- Import SQL (MySQL) - Gestion de stock y ventas
 -- Objetivo: crear tablas base + seed minimo (sin contrasenas)
 
-CREATE DATABASE IF NOT EXISTS `gestion_stock`
-  DEFAULT CHARACTER SET utf8mb4
-  DEFAULT COLLATE utf8mb4_unicode_ci;
-
-USE `gestion_stock`;
-
 -- Limpieza (en orden por FK)
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS `sale_items`;

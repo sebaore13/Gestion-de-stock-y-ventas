@@ -120,7 +120,7 @@ export function Sidebar({
             <div className={cn('flex items-center gap-3 overflow-hidden', collapsed && 'justify-center')}>
               <div className="h-10 w-10 shrink-0 grid place-items-center overflow-hidden">
                 <img
-                  src={`${import.meta.env.BASE_URL}PitStop-icon.webp`}
+                  src="/PitStop-icon.webp"
                   alt={`${brand} logo`}
                   className="h-10 w-10 object-contain"
                   loading="lazy"
