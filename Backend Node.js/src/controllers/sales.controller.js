@@ -26,89 +26,101 @@ async function create(req, res) {
     await conn.beginTransaction()
 
     const items = parsed.items
-    const needCodigos = items.filter((i) => !i.productoId && i.codigo).map((i) => i.codigo)
-    let codigoToId = new Map()
-    if (needCodigos.length) {
-      const [rows] = await conn.query(
-        `SELECT id, codigo FROM products WHERE codigo IN (${needCodigos.map(() => '?').join(',')})`,
-        needCodigos,
-      )
-      codigoToId = new Map(rows.map((r) => [r.codigo, r.id]))
-    }
+    const hasItems = items.length > 0
 
-    const resolved = items.map((i) => {
-      const id = i.productoId || (i.codigo ? codigoToId.get(i.codigo) : null)
-      return { ...i, productoId: id || null }
-    })
+    let products = []
+    let total = 0
 
-    const missing = resolved.filter((i) => !i.productoId)
-    if (missing.length) {
-      await conn.rollback()
-      return res.status(400).json({
-        ok: false,
-        error: 'Producto no encontrado',
-        missing: missing.map((m) => ({ codigo: m.codigo, productoId: m.productoId })),
+    if (hasItems) {
+      const needCodigos = items.filter((i) => !i.productoId && i.codigo).map((i) => i.codigo)
+      let codigoToId = new Map()
+      if (needCodigos.length) {
+        const [rows] = await conn.query(
+          `SELECT id, codigo FROM products WHERE codigo IN (${needCodigos.map(() => '?').join(',')})`,
+          needCodigos,
+        )
+        codigoToId = new Map(rows.map((r) => [r.codigo, r.id]))
+      }
+
+      const resolved = items.map((i) => {
+        const id = i.productoId || (i.codigo ? codigoToId.get(i.codigo) : null)
+        return { ...i, productoId: id || null }
       })
-    }
 
-    const qtyById = new Map()
-    for (const i of resolved) {
-      qtyById.set(i.productoId, (qtyById.get(i.productoId) || 0) + i.cantidad)
-    }
-    const productIds = Array.from(qtyById.keys()).sort((a, b) => a - b)
-
-    const [products] = await conn.query(
-      `
-      SELECT id, codigo, nombre, precio, stock
-      FROM products
-      WHERE id IN (${productIds.map(() => '?').join(',')}) AND activo = 1
-      ORDER BY id ASC
-      FOR UPDATE
-      `,
-      productIds,
-    )
-
-    if (products.length !== productIds.length) {
-      await conn.rollback()
-      return res.status(400).json({ ok: false, error: 'Producto no encontrado o desactivado' })
-    }
-
-    const insufficient = []
-    for (const p of products) {
-      const want = qtyById.get(p.id) || 0
-      if (p.stock < want) {
-        insufficient.push({
-          productoId: p.id,
-          codigo: p.codigo,
-          nombre: p.nombre,
-          disponible: p.stock,
-          solicitado: want,
+      const missing = resolved.filter((i) => !i.productoId)
+      if (missing.length) {
+        await conn.rollback()
+        return res.status(400).json({
+          ok: false,
+          error: 'Producto no encontrado',
+          missing: missing.map((m) => ({ codigo: m.codigo, productoId: m.productoId })),
         })
       }
-    }
-    if (insufficient.length) {
-      await conn.rollback()
-      return res.status(409).json({
-        ok: false,
-        error: 'Stock insuficiente',
-        details: insufficient,
-      })
+
+      const qtyById = new Map()
+      for (const i of resolved) {
+        qtyById.set(i.productoId, (qtyById.get(i.productoId) || 0) + i.cantidad)
+      }
+      const productIds = Array.from(qtyById.keys()).sort((a, b) => a - b)
+
+      const [rows] = await conn.query(
+        `
+        SELECT id, codigo, nombre, precio, stock
+        FROM products
+        WHERE id IN (${productIds.map(() => '?').join(',')}) AND activo = 1
+        ORDER BY id ASC
+        FOR UPDATE
+        `,
+        productIds,
+      )
+
+      if (rows.length !== productIds.length) {
+        await conn.rollback()
+        return res.status(400).json({ ok: false, error: 'Producto no encontrado o desactivado' })
+      }
+
+      const insufficient = []
+      for (const p of rows) {
+        const want = qtyById.get(p.id) || 0
+        if (p.stock < want) {
+          insufficient.push({
+            productoId: p.id,
+            codigo: p.codigo,
+            nombre: p.nombre,
+            disponible: p.stock,
+            solicitado: want,
+          })
+        }
+      }
+      if (insufficient.length) {
+        await conn.rollback()
+        return res.status(409).json({
+          ok: false,
+          error: 'Stock insuficiente',
+          details: insufficient,
+        })
+      }
+
+      for (const p of rows) {
+        total += (qtyById.get(p.id) || 0) * p.precio
+      }
+      products = rows
     }
 
+    total += otrosCargos
     const now = new Date()
     const fechaStr = formatLocalDatetime(now)
-
-    let total = 0
-    for (const p of products) {
-      total += (qtyById.get(p.id) || 0) * p.precio
-    }
-    total += otrosCargos
 
     const [saleResult] = await conn.query(
       'INSERT INTO sales (fecha, usuarioId, metodoPago, nota, otrosCargos, total) VALUES (?, ?, ?, ?, ?, ?)',
       [fechaStr, req.auth.userId, metodoPagoRaw, note || null, otrosCargos, total],
     )
     const saleId = saleResult.insertId
+
+    const qtyById = new Map()
+    for (const i of items) {
+      qtyById.set(i.productoId, (qtyById.get(i.productoId) || 0) + i.cantidad)
+    }
 
     for (const p of products) {
       const want = qtyById.get(p.id) || 0

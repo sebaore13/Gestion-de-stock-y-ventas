@@ -33,6 +33,7 @@ function VentasPage() {
   const [submitting, setSubmitting] = useState(false)
   const [metodoPago, setMetodoPago] = useState('EFECTIVO')
   const [otrosCargos, setOtrosCargos] = useState('')
+  const [nota, setNota] = useState('')
   const [knownProductsById, setKnownProductsById] = useState({})
 
   const categories = useCatalogStore((s) => s.categories)
@@ -137,17 +138,26 @@ function VentasPage() {
     setVentaCantidad({ productoId: id, cantidad: 0 })
   }
 
+  function handleClear() {
+    clearVenta()
+    setOtrosCargos('')
+    setNota('')
+  }
+
   async function confirm() {
     const items = ventaItems.filter((i) => i.cantidad > 0)
-    if (items.length === 0) return
+    const hasCobro = totals.extras > 0
+    if (items.length === 0 && !hasCobro) return
     setSubmitting(true)
     try {
-      await api.post('/sales', { items, metodoPago, otrosCargos: totals.extras })
+      await api.post('/sales', { items, metodoPago, otrosCargos: totals.extras, nota })
       clearVenta()
       setConfirmOpen(false)
       setOtrosCargos('')
+      setNota('')
       setMetodoPago('EFECTIVO')
-      toast.success('Venta registrada', { description: `Se vendieron ${totals.items} items` })
+      const msg = items.length > 0 ? `Se vendieron ${totals.items} items` : 'Servicio registrado'
+      toast.success('Venta registrada', { description: msg })
     } catch (err) {
       if (err.status === 409) {
         const details = err.data?.details || []
@@ -300,7 +310,7 @@ function VentasPage() {
                 </div>
               )
             })}
-            {ventaItems.length === 0 ? (
+            {ventaItems.length === 0 && !otrosCargos ? (
               <div className="py-6 text-sm text-[var(--muted)]">Aun no agregaste productos.</div>
             ) : null}
           </div>
@@ -346,6 +356,16 @@ function VentasPage() {
                   }}
                 />
               </div>
+              <div className="flex flex-col gap-1">
+                <div className="text-sm text-[var(--muted)]">Notas / Trabajo realizado</div>
+                <textarea
+                  value={nota}
+                  onChange={(e) => setNota(e.target.value)}
+                  placeholder="Ej: Cambio de aceite"
+                  rows={2}
+                  className="w-full resize-none rounded-xl border border-[rgba(255,255,255,0.1)] bg-white/3 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-zinc-500 focus:shadow-[0_0_0_2px_rgba(255,255,255,0.08)]"
+                />
+              </div>
               <div className="flex items-center justify-between text-base pt-1">
                 <span className="text-zinc-200 font-semibold">Total</span>
                 <span className="text-zinc-100 font-semibold">{moneyCLP(totals.total)}</span>
@@ -353,10 +373,10 @@ function VentasPage() {
             </div>
 
             <div className="pt-4 flex gap-2">
-              <Button variant="secondary" className="w-full justify-center" onClick={clearVenta} disabled={ventaItems.length === 0}>
+              <Button variant="secondary" className="w-full justify-center" onClick={handleClear} disabled={ventaItems.length === 0 && !otrosCargos && !nota}>
                 Limpiar
               </Button>
-              <Button variant="primary" className="w-full justify-center" onClick={() => setConfirmOpen(true)} disabled={ventaItems.length === 0 || submitting}>
+              <Button variant="primary" className="w-full justify-center" onClick={() => setConfirmOpen(true)} disabled={(ventaItems.length === 0 && !totals.extras) || submitting}>
                 {submitting ? 'Registrando...' : 'Registrar salida'}
               </Button>
             </div>
@@ -367,7 +387,7 @@ function VentasPage() {
       <Modal open={confirmOpen} onClose={() => setConfirmOpen(false)} title="Registrar salida">
         <div className="space-y-3">
           <Title as="h2" className="text-lg">Confirmacion</Title>
-          <Subtle>Confirma la venta de {totals.items} items por {moneyCLP(totals.total)}.</Subtle>
+          <Subtle>{totals.items > 0 ? `Confirma la venta de ${totals.items} items por ${moneyCLP(totals.total)}.` : `Confirma el cobro por ${moneyCLP(totals.total)}.`}</Subtle>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-1">
@@ -396,6 +416,16 @@ function VentasPage() {
                 }}
               />
             </div>
+          </div>
+          <div className="space-y-1">
+            <div className="text-xs text-zinc-400">Notas / Trabajo realizado</div>
+            <textarea
+              value={nota}
+              onChange={(e) => setNota(e.target.value)}
+              placeholder="Ej: Cambio de aceite"
+              rows={2}
+              className="w-full resize-none rounded-xl border border-[rgba(255,255,255,0.1)] bg-white/3 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-zinc-500 focus:shadow-[0_0_0_2px_rgba(255,255,255,0.08)]"
+            />
           </div>
           <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-white/3 p-4">
             <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Total</div>

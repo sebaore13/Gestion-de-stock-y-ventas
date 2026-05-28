@@ -36,7 +36,6 @@ function normalizeSaleItems(items) {
       cantidad,
     })
   }
-  if (normalized.length === 0) return { ok: false, error: 'items no puede estar vacio' }
   return { ok: true, items: normalized }
 }
 
