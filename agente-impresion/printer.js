@@ -1,0 +1,176 @@
+const fs = require('fs')
+const { exec } = require('child_process')
+const path = require('path')
+
+const W = 42 // 80mm ~42 chars
+
+function padCenter(s, w) {
+  const left = Math.max(0, Math.floor((w - s.length) / 2))
+  return ' '.repeat(left) + s
+}
+
+function padRight(s, w) {
+  return s + ' '.repeat(Math.max(0, w - s.length))
+}
+
+function padLeft(s, w) {
+  return ' '.repeat(Math.max(0, w - s.length)) + s
+}
+
+// Double-size header
+function bigHeader(text) {
+  const HALF = Math.floor(W / 2)
+  const buf = []
+  buf.push(Buffer.from([0x1B, 0x45, 0x01]))   // ESC E 1 = bold on
+  buf.push(Buffer.from([0x1D, 0x21, 0x11]))   // GS ! 0x11 = double w + double h
+  buf.push(Buffer.from(padCenter(text, HALF) + '\n', 'latin1'))
+  buf.push(Buffer.from([0x1D, 0x21, 0x00]))   // GS ! 0 = normal size
+  buf.push(Buffer.from([0x1B, 0x45, 0x00]))   // ESC E 0 = bold off
+  return Buffer.concat(buf)
+}
+
+// Construye el buffer ESC/POS completo para el ticket
+function buildTicket(sale) {
+  const lines = []
+  const sep = () => lines.push(''.padEnd(W, '-'))
+  const sepD = () => lines.push(''.padEnd(W, '='))
+  const empty = () => lines.push('')
+
+  // Encabezado
+  empty()
+  lines.push(padCenter('+569 9378 3219', W))
+  empty()
+  lines.push(padCenter(formatFecha(sale.fecha), W))
+  lines.push(padCenter(`Venta #${sale.id}`, W))
+  empty()
+  sepD()
+  empty()
+
+  // Cabecera de columnas
+  const colHeader = padRight('Producto', W - 17) + padLeft('Cant', 5) + '  ' + padLeft('Total', 10)
+  lines.push(colHeader)
+  sep()
+  empty()
+
+  // Items
+  for (const item of sale.items || []) {
+    const nombre = item.nombre || ''
+    const cant = String(item.cantidad)
+    const total = '$' + formatear(item.precio * item.cantidad)
+    const line1 = padRight(nombre.slice(0, W - 17), W - 17) + padLeft(cant, 5) + '  ' + padLeft(total, 10)
+    lines.push(line1)
+  }
+
+  // Otros cobros
+  if (sale.otrosCargos > 0) {
+    const label = 'Otros cobros'
+    const total = '$' + formatear(sale.otrosCargos)
+    const line = padRight(label, W - 12) + padLeft(total, 12)
+    lines.push(line)
+  }
+
+  empty()
+  sep()
+  empty()
+
+  // Notas
+  if (sale.nota) {
+    lines.push('Notas:')
+    lines.push(sale.nota)
+    empty()
+  }
+
+  // Totales
+  lines.push(padRight('TOTAL', W - 12) + padLeft('$' + formatear(sale.total), 12))
+  lines.push('Pago: ' + (sale.metodoPago || 'EFECTIVO'))
+  empty()
+  sepD()
+
+  // Pie
+  empty()
+  lines.push(padCenter('Gracias por su compra', W))
+  empty()
+  empty()
+  empty()
+  empty()
+  empty()
+  empty()
+
+  const textBuf = linesToEscpos(lines, bigHeader('PitstopPRO'))
+  return textBuf
+}
+
+function linesToEscpos(lines, prefix) {
+  const bufs = []
+
+  // Initialize printer
+  bufs.push(Buffer.from([0x1B, 0x40])) // ESC @
+
+  // Code page 858 (Latin-1 + Euro)
+  bufs.push(Buffer.from([0x1B, 0x74, 0x13])) // ESC t 0x13
+
+  // Optional prefix (e.g. big header)
+  if (prefix) bufs.push(prefix)
+
+  for (const line of lines) {
+    // Si es una línea de separación con =, usar doble ancho normal
+    if (line.startsWith('=') || line.startsWith('-')) {
+      // Línea normal con guiones
+      const text = line.slice(0, W)
+      bufs.push(Buffer.from(text, 'latin1'))
+      bufs.push(Buffer.from([0x0A])) // LF
+      continue
+    }
+
+    // Texto normal
+    const text = line.slice(0, W)
+    bufs.push(Buffer.from(text, 'latin1'))
+    bufs.push(Buffer.from([0x0A])) // LF
+  }
+
+  // Cut (paper full cut)
+  bufs.push(Buffer.from([0x1D, 0x56, 0x00])) // GS V 0
+
+  return Buffer.concat(bufs)
+}
+
+function formatFecha(fecha) {
+  if (!fecha) return ''
+  const d = new Date(fecha)
+  if (isNaN(d.getTime())) return String(fecha)
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+function formatear(valor) {
+  return String(valor).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ''
+}
+
+// Envía buffer raw ESC/POS a la impresora via cmd copy /b (windows)
+function printBuffer(buffer, printerName) {
+  return new Promise((resolve, reject) => {
+    const tmpFile = path.join(__dirname, `__print_${Date.now()}.prn`)
+    try {
+      fs.writeFileSync(tmpFile, buffer)
+    } catch (err) {
+      return reject(err)
+    }
+
+    const cmd = `copy /b "${tmpFile}" "\\\\localhost\\${printerName}" >nul 2>&1`
+    exec(cmd, { timeout: 15000 }, (err) => {
+      try { fs.unlinkSync(tmpFile) } catch {}
+      if (err) {
+        return reject(new Error(
+          `No se pudo imprimir. Asegurate de compartir la impresora:\n` +
+          `  1. Panel de control > Impresoras\n` +
+          `  2. Clic derecho "${printerName}" > Compartir\n` +
+          `  3. Compartir como "${printerName}"\n` +
+          `  4. Volve a intentar`
+        ))
+      }
+      resolve('OK')
+    })
+  })
+}
+
+module.exports = { buildTicket, printBuffer }

@@ -147,6 +147,9 @@ async function create(req, res) {
     }
 
     await conn.commit()
+
+    await pool.query('INSERT INTO print_jobs (saleId) VALUES (?)', [saleId]).catch(() => {})
+
     res.status(201).json({
       ok: true,
       sale: {

@@ -1,0 +1,15 @@
+{
+  "name": "agente-impresion-pitstop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Agente local de impresion para PitstopPRO",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node test-print.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.0",
+    "mysql2": "^3.12.0"
+  }
+}
