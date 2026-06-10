@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronDown, Printer } from 'lucide-react'
+import { ArrowLeft, ChevronDown, Printer } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '../services/api'
 import { Card, CardBody, CardHeader } from '../components/atoms/Card'
@@ -51,25 +51,19 @@ export function CotizacionesHistorial() {
     }
   }
 
-  const estadoVariant = (estado) => {
-    switch (estado) {
-      case 'Aprobada': return 'success'
-      case 'Rechazada': return 'danger'
-      case 'Convertida': return 'info'
-      default: return 'neutral'
-    }
-  }
-
   return (
     <Card>
       <CardHeader>
         <div>
           <div className="text-sm font-semibold">Historial de Cotizaciones</div>
           <div className="text-xs text-[var(--muted)] pt-1">
-            Cotizaciones registradas. <a href="#/cotizaciones" className="underline">Nueva cotizacion</a>
+            Cotizaciones registradas.
           </div>
         </div>
-        <Badge variant="neutral">{rows.length}</Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="neutral">{rows.length}</Badge>
+          <a href="#/cotizaciones"><Button variant="primary" size="sm"><ArrowLeft size={16} /> Volver</Button></a>
+        </div>
       </CardHeader>
       <CardBody>
         {loadError ? (
@@ -112,7 +106,6 @@ export function CotizacionesHistorial() {
                       {costos.length > 0 ? (
                         <><span className="hidden sm:inline text-zinc-500">·</span><span className="hidden sm:inline">+{costos.length} costos</span></>
                       ) : null}
-                      <Badge variant={estadoVariant(c.estado)}>{c.estado}</Badge>
                     </div>
                   </div>
                   <div className="hidden sm:flex shrink-0 items-start gap-3">

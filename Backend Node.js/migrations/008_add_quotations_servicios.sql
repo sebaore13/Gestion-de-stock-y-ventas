@@ -1,0 +1,1 @@
+ALTER TABLE `quotations` ADD COLUMN `servicios` JSON DEFAULT NULL AFTER `otros_costos`;

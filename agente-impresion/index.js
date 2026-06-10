@@ -25,7 +25,7 @@ async function poll() {
       console.log(`[${new Date().toLocaleTimeString()}] Job #${job.id}: imprimiendo cotizacion #${job.quotationId}...`)
 
       const [qRows] = await pool.query(
-        `SELECT id, fecha, nota, otros_costos, total FROM quotations WHERE id = ?`,
+        `SELECT id, fecha, nota, otros_costos, servicios, total FROM quotations WHERE id = ?`,
         [job.quotationId],
       )
 
@@ -38,6 +38,9 @@ async function poll() {
       const q = qRows[0]
       q.otros_costos = q.otros_costos
         ? (typeof q.otros_costos === 'string' ? JSON.parse(q.otros_costos) : q.otros_costos)
+        : []
+      q.servicios = q.servicios
+        ? (typeof q.servicios === 'string' ? JSON.parse(q.servicios) : q.servicios)
         : []
 
       const [items] = await pool.query(

@@ -1,7 +1,7 @@
 const { getPool } = require('../database/db')
 const { toInt, mysqlErrorMessage, normalizeSaleItems, formatLocalDatetime } = require('../utils')
 
-function normalizeOtrosCostos(raw) {
+function normalizeTextoItems(raw, label) {
   if (!Array.isArray(raw)) return { ok: true, items: [] }
   const items = []
   for (let i = 0; i < raw.length; i++) {
@@ -9,14 +9,19 @@ function normalizeOtrosCostos(raw) {
     const descripcion = String(r?.descripcion || '').trim()
     const monto = toInt(r?.monto)
     if (!descripcion || descripcion.length > 255) {
-      return { ok: false, error: `otrosCostos[${i}]: descripcion invalida (max 255)` }
+      return { ok: false, error: `${label}[${i}]: descripcion invalida (max 255)` }
     }
     if (!Number.isInteger(monto) || monto <= 0) {
-      return { ok: false, error: `otrosCostos[${i}]: monto invalido` }
+      return { ok: false, error: `${label}[${i}]: monto invalido` }
     }
     items.push({ descripcion, monto })
   }
   return { ok: true, items }
+}
+
+function parseJsonField(val) {
+  if (!val) return []
+  return typeof val === 'string' ? JSON.parse(val) : val
 }
 
 async function create(req, res) {
@@ -28,7 +33,9 @@ async function create(req, res) {
   if (note && note.length > 255) {
     return res.status(400).json({ ok: false, error: 'nota demasiado larga (max 255)' })
   }
-  const otrosParsed = normalizeOtrosCostos(req.body?.otrosCostos)
+  const serviciosParsed = normalizeTextoItems(req.body?.servicios, 'servicios')
+  if (!serviciosParsed.ok) return res.status(400).json({ ok: false, error: serviciosParsed.error })
+  const otrosParsed = normalizeTextoItems(req.body?.otrosCostos, 'otrosCostos')
   if (!otrosParsed.ok) return res.status(400).json({ ok: false, error: otrosParsed.error })
 
   let conn = await pool.getConnection()
@@ -37,7 +44,9 @@ async function create(req, res) {
 
     const items = parsed.items
     const hasItems = items.length > 0
-    let total = 0
+    let subtotalProductos = 0
+    let subtotalServicios = 0
+    let subtotalOtrosCostos = 0
 
     if (hasItems) {
       const needCodigos = items.filter((i) => !i.productoId && i.codigo).map((i) => i.codigo)
@@ -85,23 +94,30 @@ async function create(req, res) {
       }
 
       for (const p of rows) {
-        total += (qtyById.get(p.id) || 0) * p.precio
+        subtotalProductos += (qtyById.get(p.id) || 0) * p.precio
       }
     }
 
-    const otrosItems = otrosParsed.items
-    for (const oc of otrosItems) {
-      total += oc.monto
+    const servicios = serviciosParsed.items
+    for (const s of servicios) {
+      subtotalServicios += s.monto
     }
 
-    const otrosJson = otrosItems.length ? JSON.stringify(otrosItems) : null
+    const otros = otrosParsed.items
+    for (const o of otros) {
+      subtotalOtrosCostos += o.monto
+    }
+
+    const total = subtotalProductos + subtotalServicios + subtotalOtrosCostos
+    const otrosJson = otros.length ? JSON.stringify(otros) : null
+    const serviciosJson = servicios.length ? JSON.stringify(servicios) : null
 
     const now = new Date()
     const fechaStr = formatLocalDatetime(now)
 
     const [qResult] = await conn.query(
-      'INSERT INTO quotations (fecha, usuarioId, nota, otros_costos, total) VALUES (?, ?, ?, ?, ?)',
-      [fechaStr, req.auth.userId, note || null, otrosJson, total],
+      'INSERT INTO quotations (fecha, usuarioId, nota, otros_costos, servicios, total) VALUES (?, ?, ?, ?, ?, ?)',
+      [fechaStr, req.auth.userId, note || null, otrosJson, serviciosJson, total],
     )
     const quotationId = qResult.insertId
 
@@ -156,6 +172,9 @@ async function create(req, res) {
         id: quotationId,
         fecha: fechaStr,
         total,
+        subtotalProductos,
+        subtotalServicios,
+        subtotalOtrosCostos,
       },
     })
   } catch (err) {
@@ -207,7 +226,7 @@ async function list(req, res) {
 
     const [rows] = await pool.query(
       `SELECT q.id, q.fecha, q.usuarioId, u.nombre AS usuarioNombre,
-              q.estado, q.nota, q.otros_costos, q.total
+              q.estado, q.nota, q.otros_costos, q.servicios, q.total
        FROM quotations q
        JOIN users u ON u.id = q.usuarioId
        ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
@@ -219,7 +238,8 @@ async function list(req, res) {
     function parseRows(raw) {
       return raw.map((r) => ({
         ...r,
-        otros_costos: r.otros_costos ? (typeof r.otros_costos === 'string' ? JSON.parse(r.otros_costos) : r.otros_costos) : [],
+        otros_costos: parseJsonField(r.otros_costos),
+        servicios: parseJsonField(r.servicios),
       }))
     }
 
@@ -267,7 +287,7 @@ async function getById(req, res) {
   try {
     const [qRows] = await pool.query(
       `SELECT q.id, q.fecha, q.usuarioId, u.nombre AS usuarioNombre,
-              q.estado, q.nota, q.otros_costos, q.total
+              q.estado, q.nota, q.otros_costos, q.servicios, q.total
        FROM quotations q
        JOIN users u ON u.id = q.usuarioId
        WHERE q.id = ?
@@ -281,9 +301,8 @@ async function getById(req, res) {
       return res.status(403).json({ ok: false, error: 'Prohibido' })
     }
 
-    quotation.otros_costos = quotation.otros_costos
-      ? (typeof quotation.otros_costos === 'string' ? JSON.parse(quotation.otros_costos) : quotation.otros_costos)
-      : []
+    quotation.otros_costos = parseJsonField(quotation.otros_costos)
+    quotation.servicios = parseJsonField(quotation.servicios)
 
     const [itemRows] = await pool.query(
       `SELECT id, quotationId, productoId, codigo_snapshot, nombre_snapshot, precio_snapshot, cantidad

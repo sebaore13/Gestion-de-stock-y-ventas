@@ -140,52 +140,71 @@ function buildQuotation(q) {
   const sepD = () => lines.push(''.padEnd(W, '='))
   const empty = () => lines.push('')
 
+  sepD()
+  lines.push(padCenter('COTIZACION', W))
+  lines.push(padCenter('N° ' + String(q.id).padStart(6, '0'), W))
+  sepD()
   empty()
-  lines.push(padCenter('COTIZACION #' + q.id, W))
-  empty()
-  lines.push(padCenter('+569 9378 3219', W))
-  empty()
-  lines.push(padCenter(formatFecha(q.fecha), W))
-  if (q.nota) {
-    lines.push('Nota: ' + q.nota)
-  }
+  lines.push(padRight('N°celular: +569 9378 3219', W))
+  lines.push(padRight(formatFecha(q.fecha), W))
   empty()
   sepD()
   empty()
 
-  const colHeader = padRight('Producto', W - 17) + padLeft('Cant', 5) + '  ' + padLeft('Total', 10)
-  lines.push(colHeader)
-  sep()
-  empty()
+  const hasProductos = q.items && q.items.length > 0
+  const hasServicios = q.servicios && q.servicios.length > 0
+  const hasOtros = q.otros_costos && q.otros_costos.length > 0
 
-  for (const item of q.items || []) {
-    const nombre = item.nombre_snapshot || item.nombre || ''
-    const cant = String(item.cantidad)
-    const total = '$' + formatear(item.precio_snapshot * item.cantidad)
-    const line1 = padRight(nombre.slice(0, W - 17), W - 17) + padLeft(cant, 5) + '  ' + padLeft(total, 10)
-    lines.push(line1)
-  }
-
-  empty()
-  sep()
-  empty()
-
-  if (q.otros_costos && q.otros_costos.length > 0) {
-    lines.push(padCenter('COSTOS ADICIONALES', W))
-    empty()
-    for (const oc of q.otros_costos) {
-      const label = (oc.descripcion || '').slice(0, W - 14)
-      const val = '$' + formatear(oc.monto)
-      lines.push(padRight(label, W - 14) + padLeft(val, 14))
-    }
-    empty()
+  if (hasProductos) {
+    sep()
+    lines.push(padCenter('PRODUCTOS', W))
     sep()
     empty()
+    for (const item of q.items) {
+      const nombre = item.nombre_snapshot || item.nombre || ''
+      const pu = '$' + formatear(item.precio_snapshot || item.precio || 0)
+      lines.push(nombre)
+      lines.push(item.cantidad + ' x ' + pu)
+      empty()
+    }
   }
 
-  lines.push(padRight('TOTAL', W - 12) + padLeft('$' + formatear(q.total), 12))
-  empty()
-  sepD()
+  if (hasServicios) {
+    sep()
+    lines.push(padCenter('SERVICIOS', W))
+    sep()
+    empty()
+    for (const sv of q.servicios) {
+      lines.push(sv.descripcion)
+      lines.push('$' + formatear(sv.monto))
+      empty()
+    }
+  }
+
+  if (hasOtros) {
+    sep()
+    lines.push(padCenter('OTROS COSTOS', W))
+    sep()
+    empty()
+    for (const oc of q.otros_costos) {
+      lines.push(oc.descripcion)
+      lines.push('$' + formatear(oc.monto))
+      empty()
+    }
+  }
+
+  sep()
+  lines.push(padCenter('TOTAL', W))
+  lines.push(padCenter('$' + formatear(q.total), W))
+  sep()
+
+  if (q.nota) {
+    empty()
+    lines.push('Observaciones:')
+    lines.push(q.nota)
+    empty()
+    sep()
+  }
 
   empty()
   lines.push(padCenter('Gracias por su visita', W))
@@ -196,7 +215,7 @@ function buildQuotation(q) {
   empty()
   empty()
 
-  return linesToEscpos(lines)
+  return linesToEscpos(lines, bigHeader('PitstopPRO'))
 }
 
 function formatFecha(fecha) {
