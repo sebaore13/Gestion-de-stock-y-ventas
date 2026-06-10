@@ -134,6 +134,71 @@ function linesToEscpos(lines, prefix) {
   return Buffer.concat(bufs)
 }
 
+function buildQuotation(q) {
+  const lines = []
+  const sep = () => lines.push(''.padEnd(W, '-'))
+  const sepD = () => lines.push(''.padEnd(W, '='))
+  const empty = () => lines.push('')
+
+  empty()
+  lines.push(padCenter('COTIZACION #' + q.id, W))
+  empty()
+  lines.push(padCenter('+569 9378 3219', W))
+  empty()
+  lines.push(padCenter(formatFecha(q.fecha), W))
+  if (q.nota) {
+    lines.push('Nota: ' + q.nota)
+  }
+  empty()
+  sepD()
+  empty()
+
+  const colHeader = padRight('Producto', W - 17) + padLeft('Cant', 5) + '  ' + padLeft('Total', 10)
+  lines.push(colHeader)
+  sep()
+  empty()
+
+  for (const item of q.items || []) {
+    const nombre = item.nombre_snapshot || item.nombre || ''
+    const cant = String(item.cantidad)
+    const total = '$' + formatear(item.precio_snapshot * item.cantidad)
+    const line1 = padRight(nombre.slice(0, W - 17), W - 17) + padLeft(cant, 5) + '  ' + padLeft(total, 10)
+    lines.push(line1)
+  }
+
+  empty()
+  sep()
+  empty()
+
+  if (q.otros_costos && q.otros_costos.length > 0) {
+    lines.push(padCenter('COSTOS ADICIONALES', W))
+    empty()
+    for (const oc of q.otros_costos) {
+      const label = (oc.descripcion || '').slice(0, W - 14)
+      const val = '$' + formatear(oc.monto)
+      lines.push(padRight(label, W - 14) + padLeft(val, 14))
+    }
+    empty()
+    sep()
+    empty()
+  }
+
+  lines.push(padRight('TOTAL', W - 12) + padLeft('$' + formatear(q.total), 12))
+  empty()
+  sepD()
+
+  empty()
+  lines.push(padCenter('Gracias por su visita', W))
+  empty()
+  empty()
+  empty()
+  empty()
+  empty()
+  empty()
+
+  return linesToEscpos(lines)
+}
+
 function formatFecha(fecha) {
   if (!fecha) return ''
   const d = new Date(fecha)
@@ -173,4 +238,4 @@ function printBuffer(buffer, printerName) {
   })
 }
 
-module.exports = { buildTicket, printBuffer }
+module.exports = { buildTicket, buildQuotation, printBuffer }

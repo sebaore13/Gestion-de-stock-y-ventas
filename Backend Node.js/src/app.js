@@ -13,6 +13,7 @@ const movementRoutes = require('./routes/movements.routes')
 const healthRoutes = require('./routes/health.routes')
 const userRoutes = require('./routes/users.routes')
 const printRoutes = require('./routes/print.routes')
+const quotationRoutes = require('./routes/quotations.routes')
 
 function createApp() {
   const app = express()
@@ -56,7 +57,7 @@ function createApp() {
   app.use(movementRoutes)
   app.use(userRoutes)
   app.use(healthRoutes)
-  app.use(printRoutes)
+  app.use(quotationRoutes)
 
   app.use((req, res) => {
     res.status(404).json({ ok: false, error: 'Not found' })

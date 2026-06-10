@@ -7,6 +7,8 @@ import { AdminShell } from './AdminShell'
 import { Dashboard } from '../pages/Dashboard'
 import { Inventario } from '../pages/Inventario'
 import { Ventas } from '../pages/Ventas'
+import { Cotizaciones } from '../pages/Cotizaciones'
+import { CotizacionesHistorial } from '../pages/CotizacionesHistorial'
 import { Historial } from '../pages/Historial'
 import { Config } from '../pages/Config'
 import { AdminDashboard } from '../pages/admin/Dashboard'
@@ -29,6 +31,8 @@ export const router = createHashRouter([
           { path: '/', element: <Dashboard /> },
           { path: '/inventario', element: <Inventario /> },
           { path: '/ventas', element: <Ventas /> },
+          { path: '/cotizaciones', element: <Cotizaciones /> },
+          { path: '/cotizaciones/historial', element: <CotizacionesHistorial /> },
           { path: '/historial', element: <Historial /> },
           { path: '/config', element: <Config /> },
         ],

@@ -1,7 +1,7 @@
 require('dotenv').config()
 
 const { getPool, close } = require('./db')
-const { buildTicket, printBuffer } = require('./printer')
+const { buildTicket, buildQuotation, printBuffer } = require('./printer')
 
 const POLL_INTERVAL = (Number(process.env.POLL_INTERVAL) || 2) * 1000
 const PRINTER_NAME = process.env.PRINTER_NAME || 'POS-80'
@@ -13,49 +13,79 @@ async function poll() {
 
   try {
     const [jobs] = await pool.query(
-      `SELECT id, saleId FROM print_jobs WHERE estado = 'pending' ORDER BY id ASC LIMIT 1`,
+      `SELECT id, saleId, tipo, quotationId FROM print_jobs WHERE estado = 'pending' ORDER BY id ASC LIMIT 1`,
     )
 
     if (!jobs.length) return
 
     const job = jobs[0]
-    console.log(`[${new Date().toLocaleTimeString()}] Job #${job.id}: imprimiendo venta #${job.saleId}...`)
+    const isQuotation = job.tipo === 'quotation'
 
-    // Obtener datos de la venta
-    const [sales] = await pool.query(
-      `SELECT id, fecha, metodoPago, nota, otrosCargos, total
-       FROM sales WHERE id = ?`,
-      [job.saleId],
-    )
+    if (isQuotation) {
+      console.log(`[${new Date().toLocaleTimeString()}] Job #${job.id}: imprimiendo cotizacion #${job.quotationId}...`)
 
-    if (!sales.length) {
-      await pool.query("UPDATE print_jobs SET estado = 'failed', error = 'Venta no encontrada' WHERE id = ?", [job.id])
-      console.log(`  -> Venta #${job.saleId} no encontrada, marcando como failed`)
-      return
+      const [qRows] = await pool.query(
+        `SELECT id, fecha, nota, otros_costos, total FROM quotations WHERE id = ?`,
+        [job.quotationId],
+      )
+
+      if (!qRows.length) {
+        await pool.query("UPDATE print_jobs SET estado = 'failed', error = 'Cotizacion no encontrada' WHERE id = ?", [job.id])
+        console.log(`  -> Cotizacion #${job.quotationId} no encontrada, marcando como failed`)
+        return
+      }
+
+      const q = qRows[0]
+      q.otros_costos = q.otros_costos
+        ? (typeof q.otros_costos === 'string' ? JSON.parse(q.otros_costos) : q.otros_costos)
+        : []
+
+      const [items] = await pool.query(
+        `SELECT nombre_snapshot, codigo_snapshot, precio_snapshot, cantidad
+         FROM quotation_items WHERE quotationId = ? ORDER BY id ASC`,
+        [job.quotationId],
+      )
+
+      q.items = items
+
+      const buffer = buildQuotation(q)
+      await printBuffer(buffer, PRINTER_NAME)
+
+      await pool.query("UPDATE print_jobs SET estado = 'printed', printedAt = NOW() WHERE id = ?", [job.id])
+      console.log(`  -> Cotizacion #${job.quotationId} impresa correctamente`)
+    } else {
+      console.log(`[${new Date().toLocaleTimeString()}] Job #${job.id}: imprimiendo venta #${job.saleId}...`)
+
+      const [sales] = await pool.query(
+        `SELECT id, fecha, metodoPago, nota, otrosCargos, total
+         FROM sales WHERE id = ?`,
+        [job.saleId],
+      )
+
+      if (!sales.length) {
+        await pool.query("UPDATE print_jobs SET estado = 'failed', error = 'Venta no encontrada' WHERE id = ?", [job.id])
+        console.log(`  -> Venta #${job.saleId} no encontrada, marcando como failed`)
+        return
+      }
+
+      const sale = sales[0]
+
+      const [items] = await pool.query(
+        `SELECT nombre_snapshot AS nombre, codigo_snapshot AS codigo, precio_snapshot AS precio, cantidad
+         FROM sale_items WHERE saleId = ? ORDER BY id ASC`,
+        [job.saleId],
+      )
+
+      sale.items = items
+
+      const buffer = buildTicket(sale)
+      await printBuffer(buffer, PRINTER_NAME)
+
+      await pool.query("UPDATE print_jobs SET estado = 'printed', printedAt = NOW() WHERE id = ?", [job.id])
+      console.log(`  -> Venta #${job.saleId} impresa correctamente`)
     }
-
-    const sale = sales[0]
-
-    // Obtener items
-    const [items] = await pool.query(
-      `SELECT nombre_snapshot AS nombre, codigo_snapshot AS codigo, precio_snapshot AS precio, cantidad
-       FROM sale_items WHERE saleId = ? ORDER BY id ASC`,
-      [job.saleId],
-    )
-
-    sale.items = items
-
-    // Generar e imprimir ticket
-    const buffer = buildTicket(sale)
-    await printBuffer(buffer, PRINTER_NAME)
-
-    // Marcar como impreso
-    await pool.query("UPDATE print_jobs SET estado = 'printed', printedAt = NOW() WHERE id = ?", [job.id])
-    console.log(`  -> Venta #${job.saleId} impresa correctamente`)
-
   } catch (err) {
     console.error(`[${new Date().toLocaleTimeString()}] Error:`, err.message)
-    // Incrementar intentos y marcar como failed si supera el limite
     await pool.query(
       `UPDATE print_jobs SET intentos = intentos + 1,
        estado = CASE WHEN intentos >= 2 THEN 'failed' ELSE estado END,
@@ -84,7 +114,6 @@ console.log('')
 
 async function main() {
   const pool = await getPool()
-  // Test de conexión
   try {
     await pool.query('SELECT 1')
     console.log('Conexion a BD: OK')

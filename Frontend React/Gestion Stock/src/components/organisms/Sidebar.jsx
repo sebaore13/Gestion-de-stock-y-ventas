@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Boxes,
   ShoppingCart,
+  FileText,
   History,
   Tags,
   Users,
@@ -18,6 +19,7 @@ const NAV_VENDEDOR = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, to: '/', end: true },
   { key: 'inventario', label: 'Inventario', icon: Boxes, to: '/inventario' },
   { key: 'ventas', label: 'Ventas', icon: ShoppingCart, to: '/ventas' },
+  { key: 'cotizaciones', label: 'Cotizaciones', icon: FileText, to: '/cotizaciones' },
   { key: 'historial', label: 'Historial', icon: History, to: '/historial' },
 ]
 
