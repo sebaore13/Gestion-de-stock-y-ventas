@@ -6,6 +6,10 @@ export function titleForPath(pathname) {
       return 'Inventario'
     case '/ventas':
       return 'Ventas'
+    case '/cotizaciones':
+      return 'Cotizaciones'
+    case '/cotizaciones/historial':
+      return 'Cotizaciones · Historial'
     case '/historial':
       return 'Historial'
     case '/config':

@@ -134,6 +134,90 @@ function linesToEscpos(lines, prefix) {
   return Buffer.concat(bufs)
 }
 
+function buildQuotation(q) {
+  const lines = []
+  const sep = () => lines.push(''.padEnd(W, '-'))
+  const sepD = () => lines.push(''.padEnd(W, '='))
+  const empty = () => lines.push('')
+
+  sepD()
+  lines.push(padCenter('COTIZACION', W))
+  lines.push(padCenter('N° ' + String(q.id).padStart(6, '0'), W))
+  sepD()
+  empty()
+  lines.push(padRight('N°celular: +569 9378 3219', W))
+  lines.push(padRight(formatFecha(q.fecha), W))
+  empty()
+  sepD()
+  empty()
+
+  const hasProductos = q.items && q.items.length > 0
+  const hasServicios = q.servicios && q.servicios.length > 0
+  const hasOtros = q.otros_costos && q.otros_costos.length > 0
+
+  if (hasProductos) {
+    sep()
+    lines.push(padCenter('PRODUCTOS', W))
+    sep()
+    empty()
+    for (const item of q.items) {
+      const nombre = item.nombre_snapshot || item.nombre || ''
+      const pu = '$' + formatear(item.precio_snapshot || item.precio || 0)
+      lines.push(nombre)
+      lines.push(item.cantidad + ' x ' + pu)
+      empty()
+    }
+  }
+
+  if (hasServicios) {
+    sep()
+    lines.push(padCenter('SERVICIOS', W))
+    sep()
+    empty()
+    for (const sv of q.servicios) {
+      lines.push(sv.descripcion)
+      lines.push('$' + formatear(sv.monto))
+      empty()
+    }
+  }
+
+  if (hasOtros) {
+    sep()
+    lines.push(padCenter('OTROS COSTOS', W))
+    sep()
+    empty()
+    for (const oc of q.otros_costos) {
+      lines.push(oc.descripcion)
+      lines.push('$' + formatear(oc.monto))
+      empty()
+    }
+  }
+
+  sep()
+  lines.push(padCenter('TOTAL', W))
+  lines.push(padCenter('$' + formatear(q.total), W))
+  sep()
+
+  if (q.nota) {
+    empty()
+    lines.push('Observaciones:')
+    lines.push(q.nota)
+    empty()
+    sep()
+  }
+
+  empty()
+  lines.push(padCenter('Gracias por su visita', W))
+  empty()
+  empty()
+  empty()
+  empty()
+  empty()
+  empty()
+
+  return linesToEscpos(lines, bigHeader('PitstopPRO'))
+}
+
 function formatFecha(fecha) {
   if (!fecha) return ''
   const d = new Date(fecha)
@@ -173,4 +257,4 @@ function printBuffer(buffer, printerName) {
   })
 }
 
-module.exports = { buildTicket, printBuffer }
+module.exports = { buildTicket, buildQuotation, printBuffer }
