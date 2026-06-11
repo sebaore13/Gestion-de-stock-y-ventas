@@ -58,6 +58,7 @@ function createApp() {
   app.use(userRoutes)
   app.use(healthRoutes)
   app.use(quotationRoutes)
+  app.use(printRoutes)
 
   app.use((req, res) => {
     res.status(404).json({ ok: false, error: 'Not found' })

@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Printer } from 'lucide-react'
+import { toast } from 'sonner'
 import { api } from '../services/api'
 import { Card, CardBody, CardHeader } from '../components/atoms/Card'
 import { Badge } from '../components/atoms/Badge'
+import { Button } from '../components/atoms/Button'
 import { SearchBar } from '../components/molecules/SearchBar'
 import { motionTokens } from '../design/motion'
 
@@ -12,6 +14,7 @@ export function Historial() {
   const [sales, setSales] = useState([])
   const [loadError, setLoadError] = useState('')
   const [openSaleId, setOpenSaleId] = useState(null)
+  const [reprintingId, setReprintingId] = useState(null)
 
   useEffect(() => {
     api.get('/sales?limit=200&includeItems=1')
@@ -33,6 +36,18 @@ export function Historial() {
         .toLowerCase().includes(needle)
     })
   }, [sales, q])
+
+  async function reprint(id) {
+    setReprintingId(id)
+    try {
+      await api.post(`/sales/${id}/reprint`)
+      toast.success('Reenviada a impresion')
+    } catch (err) {
+      toast.error('Error al reimprimir', { description: err.message })
+    } finally {
+      setReprintingId(null)
+    }
+  }
 
   return (
     <Card>
@@ -138,6 +153,17 @@ export function Historial() {
                           <div>Metodo: {s.metodoPago ?? 'N/A'}</div>
                           <div>Otros: $ {new Intl.NumberFormat('es-CL').format(Number(s.otrosCargos) || 0)}</div>
                           {s.nota ? <div className="sm:col-span-2 truncate">Nota: {s.nota}</div> : null}
+                        </div>
+                        <div className="pt-3 flex justify-end">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => reprint(s.id)}
+                            disabled={reprintingId === s.id}
+                          >
+                            <Printer size={14} />
+                            {reprintingId === s.id ? 'Reenviando...' : 'Reimprimir'}
+                          </Button>
                         </div>
                       </div>
                     </div>

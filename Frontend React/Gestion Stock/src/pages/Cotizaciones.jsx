@@ -107,6 +107,7 @@ export function Cotizaciones() {
     if (monto <= 0) { toast.error('Ingresa un monto valido'); return }
     setServicios((prev) => [...prev, { descripcion: desc, monto }])
     setSvInput({ descripcion: '', monto: '' })
+    setTimeout(() => document.getElementById('sv-desc')?.focus(), 0)
   }
 
   function startEditServicio(idx) {
@@ -138,6 +139,7 @@ export function Cotizaciones() {
     if (monto <= 0) { toast.error('Ingresa un monto valido'); return }
     setOtrosCostos((prev) => [...prev, { descripcion: desc, monto }])
     setOcInput({ descripcion: '', monto: '' })
+    setTimeout(() => document.getElementById('oc-desc')?.focus(), 0)
   }
 
   function startEditOtroCosto(idx) {
@@ -239,7 +241,7 @@ export function Cotizaciones() {
                 </div>
                 {query.trim() ? (
                   <div className="pt-2">
-                    <Button variant="ghost" size="sm" onClick={() => setQuery('')}>
+                    <Button variant="secondary" size="sm" onClick={() => setQuery('')}>
                       <X size={16} /> Limpiar
                     </Button>
                   </div>
@@ -275,13 +277,18 @@ export function Cotizaciones() {
                     <Wrench size={14} /> Servicio
                   </div>
                   <div className="space-y-2">
-                    <Input id="sv-desc" value={svInput.descripcion} placeholder="Descripcion" maxLength={255}
-                      onChange={(e) => setSvInput((p) => ({ ...p, descripcion: e.target.value }))}
-                      onKeyDown={(e) => e.key === 'Enter' && addServicio()} />
-                    <div className="flex gap-2">
-                      <Input value={svInput.monto} type="number" min={0} step={1} placeholder="Valor $"
-                        onChange={(e) => setSvInput((p) => ({ ...p, monto: e.target.value }))}
-                        onKeyDown={(e) => e.key === 'Enter' && addServicio()} />
+                      <Input id="sv-desc" value={svInput.descripcion} placeholder="Descripcion" maxLength={255}
+                        onChange={(e) => setSvInput((p) => ({ ...p, descripcion: e.target.value }))}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            if (svInput.monto.trim()) { addServicio() }
+                            else { document.getElementById('sv-monto')?.focus() }
+                          }
+                        }} />
+                      <div className="flex gap-2">
+                        <Input id="sv-monto" value={svInput.monto} type="number" min={0} step={1} placeholder="Valor $"
+                          onChange={(e) => setSvInput((p) => ({ ...p, monto: e.target.value }))}
+                          onKeyDown={(e) => e.key === 'Enter' && addServicio()} />
                       <Button variant="primary" size="sm" className="shrink-0" onClick={addServicio}>
                         <Plus size={16} />
                       </Button>
@@ -293,13 +300,18 @@ export function Cotizaciones() {
                     <PlusCircle size={14} /> Otro Costo
                   </div>
                   <div className="space-y-2">
-                    <Input id="oc-desc" value={ocInput.descripcion} placeholder="Descripcion" maxLength={255}
-                      onChange={(e) => setOcInput((p) => ({ ...p, descripcion: e.target.value }))}
-                      onKeyDown={(e) => e.key === 'Enter' && addOtroCosto()} />
-                    <div className="flex gap-2">
-                      <Input value={ocInput.monto} type="number" min={0} step={1} placeholder="Valor $"
-                        onChange={(e) => setOcInput((p) => ({ ...p, monto: e.target.value }))}
-                        onKeyDown={(e) => e.key === 'Enter' && addOtroCosto()} />
+                      <Input id="oc-desc" value={ocInput.descripcion} placeholder="Descripcion" maxLength={255}
+                        onChange={(e) => setOcInput((p) => ({ ...p, descripcion: e.target.value }))}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            if (ocInput.monto.trim()) { addOtroCosto() }
+                            else { document.getElementById('oc-monto')?.focus() }
+                          }
+                        }} />
+                      <div className="flex gap-2">
+                        <Input id="oc-monto" value={ocInput.monto} type="number" min={0} step={1} placeholder="Valor $"
+                          onChange={(e) => setOcInput((p) => ({ ...p, monto: e.target.value }))}
+                          onKeyDown={(e) => e.key === 'Enter' && addOtroCosto()} />
                       <Button variant="primary" size="sm" className="shrink-0" onClick={addOtroCosto}>
                         <Plus size={16} />
                       </Button>
@@ -312,6 +324,7 @@ export function Cotizaciones() {
                 <div className="text-xs text-[var(--muted)] pb-1">Observaciones</div>
                 <Input value={note} placeholder="Opcional" maxLength={255}
                   onChange={(e) => setNote(e.target.value)} />
+                <div className="text-[10px] text-[var(--muted)] pt-1 opacity-60">Se imprimirá en el comprobante</div>
               </div>
             </CardBody>
           </Card>

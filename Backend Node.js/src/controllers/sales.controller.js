@@ -288,4 +288,21 @@ async function getById(req, res) {
   }
 }
 
-module.exports = { create, list, getById }
+async function reprint(req, res) {
+  const pool = getPool()
+  if (!pool) return res.status(500).json({ ok: false, error: 'DB no configurada' })
+  const id = toInt(req.params.id)
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ ok: false, error: 'id invalido' })
+
+  try {
+    const [rows] = await pool.query('SELECT id FROM sales WHERE id = ? LIMIT 1', [id])
+    if (!rows.length) return res.status(404).json({ ok: false, error: 'Venta no encontrada' })
+
+    await pool.query('INSERT INTO print_jobs (saleId, tipo) VALUES (?, ?)', [id, 'sale'])
+    res.json({ ok: true, message: 'Enviada a impresion' })
+  } catch (err) {
+    res.status(500).json({ ok: false, error: mysqlErrorMessage(err) })
+  }
+}
+
+module.exports = { create, list, getById, reprint }

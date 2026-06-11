@@ -14,6 +14,7 @@ const config = {
   bootstrapPassword: process.env.BOOTSTRAP_PASSWORD || null,
   bodyLimit: process.env.BODY_LIMIT || '1mb',
   logLevel: process.env.LOG_LEVEL || 'info',
+  agentKey: process.env.AGENT_KEY || '',
 }
 
 module.exports = config

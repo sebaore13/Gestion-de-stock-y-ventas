@@ -1,108 +1,72 @@
 require('dotenv').config()
-
-const { getPool, close } = require('./db')
 const { buildTicket, buildQuotation, printBuffer } = require('./printer')
 
+const API_URL = process.env.API_URL || 'http://localhost:3001'
+const AGENT_KEY = process.env.AGENT_KEY || ''
 const POLL_INTERVAL = (Number(process.env.POLL_INTERVAL) || 2) * 1000
 const PRINTER_NAME = process.env.PRINTER_NAME || 'POS-80'
 
 let running = true
 
-async function poll() {
-  const pool = await getPool()
-
-  try {
-    const [jobs] = await pool.query(
-      `SELECT id, saleId, tipo, quotationId FROM print_jobs WHERE estado = 'pending' ORDER BY id ASC LIMIT 1`,
-    )
-
-    if (!jobs.length) return
-
-    const job = jobs[0]
-    const isQuotation = job.tipo === 'quotation'
-
-    if (isQuotation) {
-      console.log(`[${new Date().toLocaleTimeString()}] Job #${job.id}: imprimiendo cotizacion #${job.quotationId}...`)
-
-      const [qRows] = await pool.query(
-        `SELECT id, fecha, nota, otros_costos, servicios, total FROM quotations WHERE id = ?`,
-        [job.quotationId],
-      )
-
-      if (!qRows.length) {
-        await pool.query("UPDATE print_jobs SET estado = 'failed', error = 'Cotizacion no encontrada' WHERE id = ?", [job.id])
-        console.log(`  -> Cotizacion #${job.quotationId} no encontrada, marcando como failed`)
-        return
-      }
-
-      const q = qRows[0]
-      q.otros_costos = q.otros_costos
-        ? (typeof q.otros_costos === 'string' ? JSON.parse(q.otros_costos) : q.otros_costos)
-        : []
-      q.servicios = q.servicios
-        ? (typeof q.servicios === 'string' ? JSON.parse(q.servicios) : q.servicios)
-        : []
-
-      const [items] = await pool.query(
-        `SELECT nombre_snapshot, codigo_snapshot, precio_snapshot, cantidad
-         FROM quotation_items WHERE quotationId = ? ORDER BY id ASC`,
-        [job.quotationId],
-      )
-
-      q.items = items
-
-      const buffer = buildQuotation(q)
-      await printBuffer(buffer, PRINTER_NAME)
-
-      await pool.query("UPDATE print_jobs SET estado = 'printed', printedAt = NOW() WHERE id = ?", [job.id])
-      console.log(`  -> Cotizacion #${job.quotationId} impresa correctamente`)
-    } else {
-      console.log(`[${new Date().toLocaleTimeString()}] Job #${job.id}: imprimiendo venta #${job.saleId}...`)
-
-      const [sales] = await pool.query(
-        `SELECT id, fecha, metodoPago, nota, otrosCargos, total
-         FROM sales WHERE id = ?`,
-        [job.saleId],
-      )
-
-      if (!sales.length) {
-        await pool.query("UPDATE print_jobs SET estado = 'failed', error = 'Venta no encontrada' WHERE id = ?", [job.id])
-        console.log(`  -> Venta #${job.saleId} no encontrada, marcando como failed`)
-        return
-      }
-
-      const sale = sales[0]
-
-      const [items] = await pool.query(
-        `SELECT nombre_snapshot AS nombre, codigo_snapshot AS codigo, precio_snapshot AS precio, cantidad
-         FROM sale_items WHERE saleId = ? ORDER BY id ASC`,
-        [job.saleId],
-      )
-
-      sale.items = items
-
-      const buffer = buildTicket(sale)
-      await printBuffer(buffer, PRINTER_NAME)
-
-      await pool.query("UPDATE print_jobs SET estado = 'printed', printedAt = NOW() WHERE id = ?", [job.id])
-      console.log(`  -> Venta #${job.saleId} impresa correctamente`)
-    }
-  } catch (err) {
-    console.error(`[${new Date().toLocaleTimeString()}] Error:`, err.message)
-    await pool.query(
-      `UPDATE print_jobs SET intentos = intentos + 1,
-       estado = CASE WHEN intentos >= 2 THEN 'failed' ELSE estado END,
-       error = CASE WHEN intentos >= 2 THEN ? ELSE NULL END
-       WHERE id = ?`,
-      [err.message.slice(0, 255), job?.id || 0],
-    )
+function headers() {
+  return {
+    'Content-Type': 'application/json',
+    'x-agent-key': AGENT_KEY,
   }
 }
 
-async function shutdown() {
+async function fetchNext() {
+  const res = await fetch(`${API_URL}/print-jobs/next`, { headers: headers() })
+  if (res.status === 204) return null
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.error || `HTTP ${res.status}`)
+  }
+  return res.json()
+}
+
+async function ack(jobId, estado, errorMsg) {
+  const body = { estado }
+  if (errorMsg) body.error = errorMsg
+  const res = await fetch(`${API_URL}/print-jobs/${jobId}/ack`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    console.error(`  -> Error al confirmar job #${jobId}: ${text}`)
+  }
+}
+
+async function poll() {
+  try {
+    const result = await fetchNext()
+    if (!result) return
+
+    const { jobId, tipo, data } = result
+
+    if (tipo === 'quotation') {
+      console.log(`[${new Date().toLocaleTimeString()}] Job #${jobId}: imprimiendo cotizacion #${data.id}...`)
+      const buffer = buildQuotation(data)
+      await printBuffer(buffer, PRINTER_NAME)
+      await ack(jobId, 'printed')
+      console.log(`  -> Cotizacion #${data.id} impresa correctamente`)
+    } else {
+      console.log(`[${new Date().toLocaleTimeString()}] Job #${jobId}: imprimiendo venta #${data.id}...`)
+      const buffer = buildTicket(data)
+      await printBuffer(buffer, PRINTER_NAME)
+      await ack(jobId, 'printed')
+      console.log(`  -> Venta #${data.id} impresa correctamente`)
+    }
+  } catch (err) {
+    console.error(`[${new Date().toLocaleTimeString()}] Error:`, err.message)
+  }
+}
+
+function shutdown() {
   console.log('\nDeteniendo agente...')
   running = false
-  await close()
   process.exit(0)
 }
 
@@ -110,21 +74,13 @@ process.on('SIGINT', shutdown)
 process.on('SIGTERM', shutdown)
 
 console.log('=== Agente de impresion PitstopPRO ===')
+console.log(`API: ${API_URL}`)
 console.log(`Impresora: ${PRINTER_NAME}`)
 console.log(`Polling cada: ${POLL_INTERVAL / 1000}s`)
 console.log('Presiona Ctrl+C para detener.')
 console.log('')
 
 async function main() {
-  const pool = await getPool()
-  try {
-    await pool.query('SELECT 1')
-    console.log('Conexion a BD: OK')
-  } catch (err) {
-    console.error('Error de conexion a BD:', err.message)
-    console.error('Verifica las credenciales en .env')
-    process.exit(1)
-  }
   console.log('Esperando trabajos de impresion...')
   console.log('')
 
