@@ -33,6 +33,7 @@ function VentasPage() {
   const [submitting, setSubmitting] = useState(false)
   const [metodoPago, setMetodoPago] = useState('EFECTIVO')
   const [otrosCargos, setOtrosCargos] = useState('')
+  const [note, setNote] = useState('')
   const [knownProductsById, setKnownProductsById] = useState({})
 
   const categories = useCatalogStore((s) => s.categories)
@@ -142,11 +143,12 @@ function VentasPage() {
     if (items.length === 0) return
     setSubmitting(true)
     try {
-      await api.post('/sales', { items, metodoPago, otrosCargos: totals.extras })
+      await api.post('/sales', { items, metodoPago, otrosCargos: totals.extras, nota: note })
       clearVenta()
       setConfirmOpen(false)
       setOtrosCargos('')
       setMetodoPago('EFECTIVO')
+      setNote('')
       toast.success('Venta registrada', { description: `Se vendieron ${totals.items} items` })
     } catch (err) {
       if (err.status === 409) {
@@ -346,6 +348,9 @@ function VentasPage() {
                   }}
                 />
               </div>
+              <div className="text-sm text-[var(--muted)]">Notas</div>
+              <Input value={note} placeholder="Opcional" maxLength={255}
+                onChange={(e) => setNote(e.target.value)} />
               <div className="flex items-center justify-between text-base pt-1">
                 <span className="text-zinc-200 font-semibold">Total</span>
                 <span className="text-zinc-100 font-semibold">{moneyCLP(totals.total)}</span>
