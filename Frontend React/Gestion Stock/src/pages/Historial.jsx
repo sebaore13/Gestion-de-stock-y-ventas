@@ -32,7 +32,8 @@ export function Historial() {
     if (!needle) return sales
     return sales.filter((s) => {
       const itemsText = (s.items || []).map((it) => `${it.nombre_snapshot} ${it.codigo_snapshot} ${it.cantidad}`).join(' ')
-      return `${s.id} ${s.usuarioNombre ?? ''} ${s.metodoPago ?? ''} ${s.nota ?? ''} ${s.total ?? ''} ${itemsText}`
+      const svText = (s.servicios || []).map((sv) => `${sv.descripcion} ${sv.cantidad}`).join(' ')
+      return `${s.id} ${s.usuarioNombre ?? ''} ${s.metodoPago ?? ''} ${s.nota ?? ''} ${s.total ?? ''} ${itemsText} ${svText}`
         .toLowerCase().includes(needle)
     })
   }, [sales, q])
@@ -54,7 +55,7 @@ export function Historial() {
       <CardHeader>
         <div>
           <div className="text-sm font-semibold">Historial</div>
-          <div className="text-xs text-[var(--muted)] pt-1">Tus ventas (transacciones) con detalle de productos.</div>
+          <div className="text-xs text-[var(--muted)] pt-1">Ventas de productos y servicios.</div>
         </div>
         <Badge variant="neutral">{rows.length}</Badge>
       </CardHeader>
@@ -95,8 +96,9 @@ export function Historial() {
                       <span className="hidden sm:inline">{s.metodoPago ?? 'N/A'}</span>
                       <span className="hidden sm:inline text-zinc-500">·</span>
                       <span className="hidden sm:inline">
-                        Productos:{' '}
-                        {(s.items || []).reduce((acc, it) => acc + (Number(it.cantidad) || 0), 0)}
+                        {(s.items || []).length > 0 ? `Productos: ${(s.items || []).reduce((acc, it) => acc + (Number(it.cantidad) || 0), 0)}` : ''}
+                        {(s.items || []).length > 0 && (s.servicios || []).length > 0 ? ' · ' : ''}
+                        {(s.servicios || []).length > 0 ? `Servicios: ${(s.servicios || []).length}` : ''}
                       </span>
                     </div>
                   </div>
@@ -148,6 +150,25 @@ export function Historial() {
                             <div className="text-sm text-[var(--muted)]">Sin items.</div>
                           ) : null}
                         </div>
+
+                        {s.servicios && s.servicios.length > 0 ? (
+                          <div className="pt-3">
+                            <div className="text-xs text-zinc-400 pb-2">Servicios</div>
+                            <div className="space-y-2">
+                              {(s.servicios || []).map((sv, idx) => (
+                                <div key={idx} className="flex items-center justify-between gap-4">
+                                  <div className="min-w-0">
+                                    <div className="text-sm text-zinc-100 truncate">{sv.descripcion}</div>
+                                  </div>
+                                  <div className="shrink-0 text-right">
+                                    <div className="text-sm text-zinc-100 font-medium tabular-nums">x{sv.cantidad}</div>
+                                    <div className="text-xs text-[var(--muted)] tabular-nums">$ {new Intl.NumberFormat('es-CL').format(Number(sv.precio) || 0)}</div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
 
                         <div className="pt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-[var(--muted)]">
                           <div>Metodo: {s.metodoPago ?? 'N/A'}</div>
