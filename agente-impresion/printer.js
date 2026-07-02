@@ -47,19 +47,34 @@ function buildTicket(sale) {
   sepD()
   empty()
 
-  // Cabecera de columnas
-  const colHeader = padRight('Producto', W - 17) + padLeft('Cant', 5) + '  ' + padLeft('Total', 10)
-  lines.push(colHeader)
-  sep()
-  empty()
+  // Productos
+  if (sale.items && sale.items.length > 0) {
+    empty()
+    sep()
+    lines.push(padCenter('PRODUCTOS', W))
+    sep()
+    empty()
+    for (const item of sale.items) {
+      const nombre = item.nombre || ''
+      const cant = String(item.cantidad)
+      const total = '$' + formatear(item.precio * item.cantidad)
+      const line1 = padRight(nombre.slice(0, W - 17), W - 17) + padLeft(cant, 5) + '  ' + padLeft(total, 10)
+      lines.push(line1)
+    }
+  }
 
-  // Items
-  for (const item of sale.items || []) {
-    const nombre = item.nombre || ''
-    const cant = String(item.cantidad)
-    const total = '$' + formatear(item.precio * item.cantidad)
-    const line1 = padRight(nombre.slice(0, W - 17), W - 17) + padLeft(cant, 5) + '  ' + padLeft(total, 10)
-    lines.push(line1)
+  // Servicios
+  if (sale.servicios && sale.servicios.length > 0) {
+    empty()
+    sep()
+    lines.push(padCenter('SERVICIOS', W))
+    sep()
+    empty()
+    for (const sv of sale.servicios) {
+      const label = sv.descripcion
+      const total = '$' + formatear(sv.monto)
+      lines.push(padRight(label, W - 12) + padLeft(total, 12))
+    }
   }
 
   // Otros cobros

@@ -21,6 +21,19 @@ async function create(req, res) {
     return res.status(400).json({ ok: false, error: 'nota demasiado larga (max 255)' })
   }
 
+  const serviciosRaw = req.body?.servicios
+  let servicios = []
+  if (Array.isArray(serviciosRaw)) {
+    for (const s of serviciosRaw) {
+      const desc = String(s.descripcion || '').trim()
+      const cant = Math.max(1, Math.trunc(Number(s.cantidad) || 1))
+      const precio = Math.trunc(Number(s.precio) || 0)
+      if (!desc) continue
+      if (precio <= 0) continue
+      servicios.push({ descripcion: desc, cantidad: cant, precio, monto: cant * precio })
+    }
+  }
+
   const conn = await pool.getConnection()
   try {
     await conn.beginTransaction()
@@ -30,6 +43,8 @@ async function create(req, res) {
 
     let products = []
     let total = 0
+
+    total += servicios.reduce((sum, s) => sum + s.monto, 0)
 
     if (hasItems) {
       const needCodigos = items.filter((i) => !i.productoId && i.codigo).map((i) => i.codigo)
@@ -112,8 +127,8 @@ async function create(req, res) {
     const fechaStr = formatLocalDatetime(now)
 
     const [saleResult] = await conn.query(
-      'INSERT INTO sales (fecha, usuarioId, metodoPago, nota, otrosCargos, total) VALUES (?, ?, ?, ?, ?, ?)',
-      [fechaStr, req.auth.userId, metodoPagoRaw, note || null, otrosCargos, total],
+      'INSERT INTO sales (fecha, usuarioId, metodoPago, nota, otrosCargos, servicios, total) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [fechaStr, req.auth.userId, metodoPagoRaw, note || null, otrosCargos, JSON.stringify(servicios), total],
     )
     const saleId = saleResult.insertId
 
@@ -207,7 +222,7 @@ async function list(req, res) {
 
     const [rows] = await pool.query(
       `SELECT s.id, s.fecha, s.usuarioId, u.nombre AS usuarioNombre, u.rol AS usuarioRol,
-              s.metodoPago, s.nota, s.otrosCargos, s.total
+               s.metodoPago, s.nota, s.otrosCargos, s.servicios, s.total
        FROM sales s
        JOIN users u ON u.id = s.usuarioId
        ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
@@ -216,8 +231,12 @@ async function list(req, res) {
       [...params, limit],
     )
 
+    const parseServicios = (s) => s.servicios
+      ? (typeof s.servicios === 'string' ? JSON.parse(s.servicios) : s.servicios)
+      : []
+
     if (!includeItems || !rows.length) {
-      return res.json({ ok: true, sales: rows })
+      return res.json({ ok: true, sales: rows.map((s) => ({ ...s, servicios: parseServicios(s) })) })
     }
 
     const saleIds = rows.map((r) => r.id)
@@ -242,6 +261,7 @@ async function list(req, res) {
       ok: true,
       sales: rows.map((s) => ({
         ...s,
+        servicios: parseServicios(s),
         items: itemsBySaleId.get(Number(s.id)) || [],
       })),
     })
@@ -260,7 +280,7 @@ async function getById(req, res) {
   try {
     const [saleRows] = await pool.query(
       `SELECT s.id, s.fecha, s.usuarioId, u.nombre AS usuarioNombre, u.rol AS usuarioRol,
-              s.metodoPago, s.nota, s.otrosCargos, s.total
+               s.metodoPago, s.nota, s.otrosCargos, s.servicios, s.total
        FROM sales s
        JOIN users u ON u.id = s.usuarioId
        WHERE s.id = ?
@@ -269,6 +289,9 @@ async function getById(req, res) {
     )
     if (!saleRows || saleRows.length === 0) return res.status(404).json({ ok: false, error: 'Venta no encontrada' })
     const sale = saleRows[0]
+    sale.servicios = sale.servicios
+      ? (typeof sale.servicios === 'string' ? JSON.parse(sale.servicios) : sale.servicios)
+      : []
 
     if (!isAdmin && Number(sale.usuarioId) !== Number(req.auth.userId)) {
       return res.status(403).json({ ok: false, error: 'Prohibido' })

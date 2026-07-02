@@ -1,0 +1,1 @@
+ALTER TABLE `sales` ADD COLUMN `servicios` JSON DEFAULT NULL AFTER `nota`;

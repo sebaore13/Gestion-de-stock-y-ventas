@@ -363,6 +363,25 @@ export function AdminHistorial() {
                             ) : null}
                           </div>
 
+                          {s.servicios && s.servicios.length > 0 ? (
+                            <div className="pt-3">
+                              <div className="text-xs text-zinc-400 pb-2">Servicios</div>
+                              <div className="space-y-2">
+                                {(s.servicios || []).map((sv, idx) => (
+                                  <div key={idx} className="flex items-center justify-between gap-4">
+                                    <div className="min-w-0">
+                                      <div className="text-sm text-zinc-100 truncate">{sv.descripcion}</div>
+                                    </div>
+                                    <div className="shrink-0 text-right">
+                                      <div className="text-sm text-zinc-100 font-medium tabular-nums">x{sv.cantidad}</div>
+                                      <div className="text-xs text-[var(--muted)] tabular-nums">$ {new Intl.NumberFormat('es-CL').format(Number(sv.precio) || 0)}</div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
+
                           <div className="pt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-[var(--muted)]">
                             <div>
                               Vendedor: {s.usuarioNombre ?? `ID ${s.usuarioId}`} · {s.usuarioRol ?? 'N/A'}
