@@ -148,7 +148,7 @@ async function create(req, res) {
 
     await conn.commit()
 
-    await pool.query('INSERT INTO print_jobs (saleId) VALUES (?)', [saleId]).catch(() => {})
+    await pool.query('INSERT INTO print_jobs (saleId, origen) VALUES (?, ?)', [saleId, 'auto']).catch(() => {})
 
     res.status(201).json({
       ok: true,
@@ -298,7 +298,7 @@ async function reprint(req, res) {
     const [rows] = await pool.query('SELECT id FROM sales WHERE id = ? LIMIT 1', [id])
     if (!rows.length) return res.status(404).json({ ok: false, error: 'Venta no encontrada' })
 
-    await pool.query('INSERT INTO print_jobs (saleId, tipo) VALUES (?, ?)', [id, 'sale'])
+    await pool.query('INSERT INTO print_jobs (saleId, tipo, origen) VALUES (?, ?, ?)', [id, 'sale', 'reprint'])
     res.json({ ok: true, message: 'Enviada a impresion' })
   } catch (err) {
     res.status(500).json({ ok: false, error: mysqlErrorMessage(err) })
