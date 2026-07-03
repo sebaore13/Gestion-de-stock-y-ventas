@@ -98,7 +98,7 @@ function buildTicket(sale) {
   empty()
 
   const textBuf = linesToEscpos(lines, bigHeader('PitstopPRO'))
-  return textBuf
+  return Buffer.concat([textBuf, Buffer.from([0x1B, 0x70, 0x00, 0x32, 0x32])])
 }
 
 function linesToEscpos(lines, prefix) {
