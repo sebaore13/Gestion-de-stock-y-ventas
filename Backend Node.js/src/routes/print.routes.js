@@ -61,7 +61,7 @@ router.get('/print-jobs/next', requireAgentKey, async (req, res) => {
 
     // tipo: 'sale'
     const [sales] = await pool.query(
-      `SELECT s.id, s.fecha, s.metodoPago, s.nota, s.otrosCargos, s.total,
+      `SELECT s.id, s.fecha, s.metodoPago, s.nota, s.otrosCargos, s.servicios, s.total,
               u.nombre AS usuarioNombre
        FROM sales s
        JOIN users u ON u.id = s.usuarioId
@@ -74,6 +74,9 @@ router.get('/print-jobs/next', requireAgentKey, async (req, res) => {
     }
 
     const sale = sales[0]
+    sale.servicios = sale.servicios
+      ? (typeof sale.servicios === 'string' ? JSON.parse(sale.servicios) : sale.servicios)
+      : []
 
     const [items] = await pool.query(
       `SELECT nombre_snapshot AS nombre, codigo_snapshot AS codigo, precio_snapshot AS precio, cantidad
@@ -91,6 +94,7 @@ router.get('/print-jobs/next', requireAgentKey, async (req, res) => {
         metodoPago: sale.metodoPago,
         nota: sale.nota,
         otrosCargos: sale.otrosCargos,
+        servicios: sale.servicios,
         total: sale.total,
         usuarioNombre: sale.usuarioNombre,
         origen: job.origen,
