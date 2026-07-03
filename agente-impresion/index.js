@@ -54,7 +54,7 @@ async function poll() {
       console.log(`  -> Cotizacion #${data.id} impresa correctamente`)
     } else {
       console.log(`[${new Date().toLocaleTimeString()}] Job #${jobId}: imprimiendo venta #${data.id}...`)
-      const buffer = buildTicket(data)
+      const buffer = buildTicket(data, data.origen)
       await printBuffer(buffer, PRINTER_NAME)
       await ack(jobId, 'printed')
       console.log(`  -> Venta #${data.id} impresa correctamente`)

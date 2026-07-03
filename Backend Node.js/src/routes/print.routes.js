@@ -20,7 +20,7 @@ router.get('/print-jobs/next', requireAgentKey, async (req, res) => {
 
   try {
     const [jobs] = await pool.query(
-      `SELECT id, saleId, tipo, quotationId FROM print_jobs WHERE estado = 'pending' ORDER BY id ASC LIMIT 1`,
+      `SELECT id, saleId, tipo, quotationId, origen FROM print_jobs WHERE estado = 'pending' ORDER BY id ASC LIMIT 1`,
     )
     if (!jobs.length) return res.status(204).end()
 
@@ -97,6 +97,7 @@ router.get('/print-jobs/next', requireAgentKey, async (req, res) => {
         servicios: sale.servicios,
         total: sale.total,
         usuarioNombre: sale.usuarioNombre,
+        origen: job.origen,
         items,
       },
     })
