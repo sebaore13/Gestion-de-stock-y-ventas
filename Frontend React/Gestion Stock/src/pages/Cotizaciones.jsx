@@ -100,6 +100,11 @@ export function Cotizaciones() {
     setProductos((prev) => prev.filter((i) => i.productoId !== id))
   }
 
+  function fmt(v) {
+    if (!v) return ''
+    return Number(v).toLocaleString('es-CL')
+  }
+
   function addServicio() {
     const desc = svInput.descripcion.trim()
     const monto = Math.trunc(Number(svInput.monto) || 0)
@@ -286,8 +291,8 @@ export function Cotizaciones() {
                           }
                         }} />
                       <div className="flex gap-2">
-                        <Input id="sv-monto" value={svInput.monto} type="number" min={0} step={1} placeholder="Valor $"
-                          onChange={(e) => setSvInput((p) => ({ ...p, monto: e.target.value }))}
+                        <Input id="sv-monto" value={fmt(svInput.monto)} type="text" inputMode="numeric" placeholder="Valor $"
+                          onChange={(e) => setSvInput((p) => ({ ...p, monto: e.target.value.replace(/\D/g, '') }))}
                           onKeyDown={(e) => e.key === 'Enter' && addServicio()} />
                       <Button variant="primary" size="sm" className="shrink-0" onClick={addServicio}>
                         <Plus size={16} />
@@ -309,8 +314,8 @@ export function Cotizaciones() {
                           }
                         }} />
                       <div className="flex gap-2">
-                        <Input id="oc-monto" value={ocInput.monto} type="number" min={0} step={1} placeholder="Valor $"
-                          onChange={(e) => setOcInput((p) => ({ ...p, monto: e.target.value }))}
+                        <Input id="oc-monto" value={fmt(ocInput.monto)} type="text" inputMode="numeric" placeholder="Valor $"
+                          onChange={(e) => setOcInput((p) => ({ ...p, monto: e.target.value.replace(/\D/g, '') }))}
                           onKeyDown={(e) => e.key === 'Enter' && addOtroCosto()} />
                       <Button variant="primary" size="sm" className="shrink-0" onClick={addOtroCosto}>
                         <Plus size={16} />
@@ -389,8 +394,8 @@ export function Cotizaciones() {
                               <>
                                 <Input value={editSv.descripcion} maxLength={255}
                                   onChange={(e) => setEditSv((p) => ({ ...p, descripcion: e.target.value }))} />
-                                <Input value={editSv.monto} type="number" min={0}
-                                  onChange={(e) => setEditSv((p) => ({ ...p, monto: e.target.value }))}
+                                <Input value={fmt(editSv.monto)} type="text" inputMode="numeric"
+                                  onChange={(e) => setEditSv((p) => ({ ...p, monto: e.target.value.replace(/\D/g, '') }))}
                                   className="w-24" />
                                 <Button variant="primary" size="sm" onClick={saveEditServicio}>Ok</Button>
                                 <Button variant="ghost" size="sm" onClick={cancelEdit}>
@@ -429,8 +434,8 @@ export function Cotizaciones() {
                               <>
                                 <Input value={editOc.descripcion} maxLength={255}
                                   onChange={(e) => setEditOc((p) => ({ ...p, descripcion: e.target.value }))} />
-                                <Input value={editOc.monto} type="number" min={0}
-                                  onChange={(e) => setEditOc((p) => ({ ...p, monto: e.target.value }))}
+                                <Input value={fmt(editOc.monto)} type="text" inputMode="numeric"
+                                  onChange={(e) => setEditOc((p) => ({ ...p, monto: e.target.value.replace(/\D/g, '') }))}
                                   className="w-24" />
                                 <Button variant="primary" size="sm" onClick={saveEditOtroCosto}>Ok</Button>
                                 <Button variant="ghost" size="sm" onClick={cancelEdit}>

@@ -33,7 +33,7 @@ export function Historial() {
     return sales.filter((s) => {
       const itemsText = (s.items || []).map((it) => `${it.nombre_snapshot} ${it.codigo_snapshot} ${it.cantidad}`).join(' ')
       const svText = (s.servicios || []).map((sv) => `${sv.descripcion} ${sv.cantidad}`).join(' ')
-      return `${s.id} ${s.usuarioNombre ?? ''} ${s.metodoPago ?? ''} ${s.nota ?? ''} ${s.total ?? ''} ${itemsText} ${svText}`
+      return `${s.id} ${s.usuarioNombre ?? ''} ${s.metodoPago ?? ''} ${s.nota ?? ''} ${s.total ?? ''} ${s.montoRecibido ?? ''} ${s.descuento ?? ''} ${s.tipoDescuento ?? ''} ${s.descuentoMonto ?? ''} ${itemsText} ${svText}`
         .toLowerCase().includes(needle)
     })
   }, [sales, q])
@@ -173,6 +173,21 @@ export function Historial() {
                         <div className="pt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-[var(--muted)]">
                           <div>Metodo: {s.metodoPago ?? 'N/A'}</div>
                           <div>Otros: $ {new Intl.NumberFormat('es-CL').format(Number(s.otrosCargos) || 0)}</div>
+                          {Number(s.descuentoMonto) > 0 ? (
+                            <div>
+                              Descuento: {s.tipoDescuento === '%' ? `${s.descuento}% ` : ''}($ -{new Intl.NumberFormat('es-CL').format(Number(s.descuentoMonto) || 0)})
+                            </div>
+                          ) : null}
+                          {Number(s.montoRecibido) > 0 ? (
+                            <div>
+                              Recibido: $ {new Intl.NumberFormat('es-CL').format(Number(s.montoRecibido) || 0)}
+                              {Number(s.montoRecibido) >= Number(s.total) ? (
+                                <> · Vuelto: $ {new Intl.NumberFormat('es-CL').format(Number(s.montoRecibido) - Number(s.total))}</>
+                              ) : (
+                                <> · Falta: $ {new Intl.NumberFormat('es-CL').format(Number(s.total) - Number(s.montoRecibido))}</>
+                              )}
+                            </div>
+                          ) : null}
                           {s.nota ? <div className="sm:col-span-2 truncate">Nota: {s.nota}</div> : null}
                         </div>
                         <div className="pt-3 flex justify-end">

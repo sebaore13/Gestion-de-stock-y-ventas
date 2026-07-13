@@ -112,6 +112,20 @@ function buildTicket(sale, origen) {
     lines.push(line)
   }
 
+  // Descuento
+  if (sale.descuentoMonto > 0) {
+    const label = sale.tipoDescuento === '%'
+      ? 'Descuento (' + sale.descuento + '%)'
+      : 'Descuento'
+    const total = '-$' + formatear(sale.descuentoMonto)
+
+    const line =
+      padRight(label, W - 12) +
+      padLeft(total, 12)
+
+    lines.push(line)
+  }
+
   empty()
   sep()
   empty()
@@ -132,6 +146,21 @@ function buildTicket(sale, origen) {
   lines.push(
     'Pago: ' + (sale.metodoPago || 'EFECTIVO')
   )
+
+  if (sale.metodoPago === 'EFECTIVO' && sale.montoRecibido) {
+    const r = Number(sale.montoRecibido)
+    if (r > 0) {
+      const v = Math.max(0, r - Number(sale.total))
+      lines.push(
+        padRight('Con cuanto paga:', W - 12) +
+        padLeft('$' + formatear(r), 12)
+      )
+      lines.push(
+        padRight('Vuelto:', W - 12) +
+        padLeft('$' + formatear(v), 12)
+      )
+    }
+  }
 
   empty()
   sepD()
