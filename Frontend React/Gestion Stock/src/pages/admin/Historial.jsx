@@ -112,14 +112,18 @@ export function AdminHistorial() {
 
     autoTable(doc, {
       startY: 78,
-      head: [['Venta', 'Fecha', 'Vendedor', 'Metodo', 'Otros', 'Total', 'Items', 'Nota']],
+      head: [['Venta', 'Fecha', 'Vendedor', 'Metodo', 'Otros', 'Descuento', 'Total', 'Recibido', 'Items', 'Nota']],
       body: saleRows.map((s) => [
         `#${s.id}`,
         new Date(s.fecha).toLocaleString('es-CL'),
         s.usuarioNombre ?? `ID ${s.usuarioId}`,
         s.metodoPago ?? 'N/A',
         String(Number(s.otrosCargos) || 0),
+        Number(s.descuentoMonto) > 0
+          ? `-${String(Number(s.descuentoMonto) || 0)}${s.tipoDescuento === '%' ? ` (${s.descuento}%)` : ''}`
+          : '',
         String(Number(s.total) || 0),
+        String(Number(s.montoRecibido) || ''),
         (s.items || []).map((it) => `${it.nombre_snapshot} x${it.cantidad}`).join(' | '),
         s.nota || '',
       ]),
@@ -170,7 +174,7 @@ export function AdminHistorial() {
     if (!needle) return sales
     return sales.filter((s) => {
       const itemsText = (s.items || []).map((it) => `${it.nombre_snapshot} ${it.codigo_snapshot} ${it.cantidad}`).join(' ')
-      return `${s.id} ${s.usuarioNombre ?? ''} ${s.usuarioRol ?? ''} ${s.metodoPago ?? ''} ${s.nota ?? ''} ${s.total ?? ''} ${itemsText}`
+      return `${s.id} ${s.usuarioNombre ?? ''} ${s.usuarioRol ?? ''} ${s.metodoPago ?? ''} ${s.nota ?? ''} ${s.total ?? ''} ${s.montoRecibido ?? ''} ${s.descuento ?? ''} ${s.tipoDescuento ?? ''} ${s.descuentoMonto ?? ''} ${itemsText}`
         .toLowerCase().includes(needle)
     })
   }, [sales, qSales])
@@ -389,6 +393,21 @@ export function AdminHistorial() {
                             <div>
                               Metodo: {s.metodoPago ?? 'N/A'} · Otros: $ {new Intl.NumberFormat('es-CL').format(Number(s.otrosCargos) || 0)}
                             </div>
+                            {Number(s.descuentoMonto) > 0 ? (
+                              <div>
+                                Descuento: {s.tipoDescuento === '%' ? `${s.descuento}% ` : ''}($ -{new Intl.NumberFormat('es-CL').format(Number(s.descuentoMonto) || 0)})
+                              </div>
+                            ) : null}
+                            {Number(s.montoRecibido) > 0 ? (
+                              <div>
+                                Recibido: $ {new Intl.NumberFormat('es-CL').format(Number(s.montoRecibido) || 0)}
+                                {Number(s.montoRecibido) >= Number(s.total) ? (
+                                  <> · Vuelto: $ {new Intl.NumberFormat('es-CL').format(Number(s.montoRecibido) - Number(s.total))}</>
+                                ) : (
+                                  <> · Falta: $ {new Intl.NumberFormat('es-CL').format(Number(s.total) - Number(s.montoRecibido))}</>
+                                )}
+                              </div>
+                            ) : null}
                             {s.nota ? <div className="sm:col-span-2 truncate">Nota: {s.nota}</div> : null}
                           </div>
                         </div>
