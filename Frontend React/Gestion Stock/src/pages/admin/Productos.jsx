@@ -82,6 +82,11 @@ export function AdminProductos() {
       .filter((p) => (needle ? `${p.codigo} ${p.nombre}`.toLowerCase().includes(needle) : true))
   }, [products, q, category, stockFilter])
 
+  function fmt(v) {
+    if (!v) return ''
+    return Number(v).toLocaleString('es-CL')
+  }
+
   async function handleCreate() {
     if (!form.codigo.trim() || !form.nombre.trim()) {
       toast.error('Codigo y nombre requeridos')
@@ -198,12 +203,11 @@ export function AdminProductos() {
                   <div className="space-y-1">
                     <div className="text-xs text-zinc-400">Precio</div>
                     <Input
-                      value={form.precio}
-                      onChange={(e) => setForm((s) => ({ ...s, precio: e.target.value }))}
-                      placeholder="Ej: 12000"
-                      type="number"
-                      min={0}
-                      step={1}
+                      value={fmt(form.precio)}
+                      onChange={(e) => setForm((s) => ({ ...s, precio: e.target.value.replace(/\D/g, '') }))}
+                      placeholder="Ej: 12.000"
+                      type="text"
+                      inputMode="numeric"
                     />
                   </div>
                   <div className="space-y-1">
@@ -375,12 +379,11 @@ export function AdminProductos() {
                         <div className="space-y-1 sm:col-span-2">
                           <div className="text-xs text-zinc-400">Precio</div>
                           <Input
-                            defaultValue={p.precio || ''}
-                            type="number"
-                            min={0}
-                            step={1}
+                            defaultValue={fmt(p.precio) || ''}
+                            type="text"
+                            inputMode="numeric"
                             onBlur={(e) => {
-                              const raw = e.target.value
+                              const raw = e.target.value.replace(/\D/g, '')
                               if (raw === '') return
                               const v = Math.max(0, Math.trunc(Number(raw)))
                               if (v !== p.precio) stageEdit(p.id, { precio: v })

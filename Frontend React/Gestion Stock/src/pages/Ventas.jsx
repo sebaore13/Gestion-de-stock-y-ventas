@@ -45,6 +45,9 @@ function ProductosView() {
   const [metodoPago, setMetodoPago] = useState('EFECTIVO')
   const [otrosCargos, setOtrosCargos] = useState('')
   const [note, setNote] = useState('')
+  const [montoRecibido, setMontoRecibido] = useState('')
+  const [descuento, setDescuento] = useState('')
+  const [tipoDescuento, setTipoDescuento] = useState('$')
   const [knownProductsById, setKnownProductsById] = useState({})
 
   const [servicios, setServicios] = useState([])
@@ -106,9 +109,17 @@ function ProductosView() {
     const subP = cart.reduce((acc, row) => acc + row.qty * row.product.precio, 0)
     const subS = servicios.reduce((acc, s) => acc + s.monto, 0)
     const extras = otrosCargos === '' ? 0 : Math.max(0, Math.trunc(Number(otrosCargos) || 0))
-    const total = subP + subS + extras
-    return { unique, items, subP, subS, extras, total }
-  }, [cart, servicios, otrosCargos])
+    const subTotal = subP + subS + extras
+    const descRaw = descuento === '' ? 0 : Math.max(0, Math.trunc(Number(descuento) || 0))
+    const descMonto = tipoDescuento === '%' ? Math.trunc(subTotal * descRaw / 100) : Math.min(descRaw, subTotal)
+    const total = Math.max(0, subTotal - descMonto)
+    return { unique, items, subP, subS, extras, subTotal, descMonto, total }
+  }, [cart, servicios, otrosCargos, descuento, tipoDescuento])
+
+  function fmt(v) {
+    if (!v) return ''
+    return Number(v).toLocaleString('es-CL')
+  }
 
   function addProduct(product) {
     setKnownProductsById((prev) => ({ ...prev, [product.id]: product }))
@@ -176,6 +187,9 @@ function ProductosView() {
     setOtrosCargos('')
     setMetodoPago('EFECTIVO')
     setNote('')
+    setMontoRecibido('')
+    setDescuento('')
+    setTipoDescuento('$')
     setQuery('')
     setCategoria('')
     setSvInput({ descripcion: '', cantidad: '1', precio: '' })
@@ -188,10 +202,13 @@ function ProductosView() {
     if (items.length === 0 && svs.length === 0) return
     setSubmitting(true)
     try {
-      await api.post('/sales', { items, servicios: svs, metodoPago, otrosCargos: totals.extras, nota: note })
+      await api.post('/sales', { items, servicios: svs, metodoPago, otrosCargos: totals.extras, nota: note, montoRecibido, descuento, tipoDescuento })
       clearAll()
       setConfirmOpen(false)
-      toast.success('Venta registrada', { description: `Total ${moneyCLP(totals.total)}` })
+      const vuelto = metodoPago === 'EFECTIVO' && montoRecibido && Number(montoRecibido) >= totals.total ? Number(montoRecibido) - totals.total : null
+      toast.success('Venta registrada', {
+        description: vuelto !== null ? `Total ${moneyCLP(totals.total)} · Vuelto ${moneyCLP(vuelto)}` : `Total ${moneyCLP(totals.total)}`,
+      })
     } catch (err) {
       if (err.status === 409) {
         const details = err.data?.details || []
@@ -305,8 +322,8 @@ function ProductosView() {
               <div className="grid grid-cols-1 sm:grid-cols-[60px_1fr] gap-2">
                 <Input id="sv-cant" value={svInput.cantidad} type="number" min={1} step={1} placeholder="Cant"
                   onChange={(e) => setSvInput((p) => ({ ...p, cantidad: e.target.value }))} />
-                <Input id="sv-precio" value={svInput.precio} type="number" min={0} step={1} placeholder="$ Precio Unitario"
-                  onChange={(e) => setSvInput((p) => ({ ...p, precio: e.target.value }))}
+                <Input id="sv-precio" value={fmt(svInput.precio)} type="text" inputMode="numeric" placeholder="$ Precio Unitario"
+                  onChange={(e) => setSvInput((p) => ({ ...p, precio: e.target.value.replace(/\D/g, '') }))}
                   onKeyDown={(e) => e.key === 'Enter' && addServicio()} />
               </div>
               <div className="flex justify-center pt-2">
@@ -371,7 +388,7 @@ function ProductosView() {
                           <>
                             <Input value={editSv.descripcion} maxLength={255} onChange={(e) => setEditSv((p) => ({ ...p, descripcion: e.target.value }))} />
                             <Input value={editSv.cantidad} type="number" min={1} className="w-16" onChange={(e) => setEditSv((p) => ({ ...p, cantidad: e.target.value }))} />
-                            <Input value={editSv.precio} type="number" min={0} className="w-20" onChange={(e) => setEditSv((p) => ({ ...p, precio: e.target.value }))} />
+                            <Input value={fmt(editSv.precio)} type="text" inputMode="numeric" className="w-20" onChange={(e) => setEditSv((p) => ({ ...p, precio: e.target.value.replace(/\D/g, '') }))} />
                             <Button variant="primary" size="sm" onClick={saveEditServicio}>Ok</Button>
                             <Button variant="ghost" size="sm" onClick={() => setEditingIdx(null)}><X size={14} /></Button>
                           </>
@@ -399,16 +416,10 @@ function ProductosView() {
               <span className="text-[var(--muted)]">Productos</span>
               <span className="text-zinc-100 font-medium">{cart.length}</span>
             </div>
-            {totals.subP > 0 ? (
-              <div className="flex items-center justify-between text-sm pt-2">
-                <span className="text-[var(--muted)]">Subtotal productos</span>
-                <span className="text-zinc-100 font-medium">{moneyCLP(totals.subP)}</span>
-              </div>
-            ) : null}
-            {totals.subS > 0 ? (
+            {servicios.length > 0 ? (
               <div className="flex items-center justify-between text-sm pt-1">
-                <span className="text-[var(--muted)]">Subtotal servicios</span>
-                <span className="text-zinc-100 font-medium">{moneyCLP(totals.subS)}</span>
+                <span className="text-[var(--muted)]">Servicios</span>
+                <span className="text-zinc-100 font-medium">{servicios.length}</span>
               </div>
             ) : null}
             <div className="pt-4 grid grid-cols-1 gap-2">
@@ -434,13 +445,34 @@ function ProductosView() {
               ) : null}
               <div className="grid grid-cols-[1fr_140px] items-center gap-2">
                 <div className="text-sm text-[var(--muted)]">Otros cobros</div>
-                <Input value={otrosCargos} type="number" min={0} step={1} placeholder="Ej: 2000"
+                <Input value={fmt(otrosCargos)} type="text" inputMode="numeric" placeholder="Ej: 2.000"
                   onChange={(e) => {
-                    const raw = e.target.value
+                    const raw = e.target.value.replace(/\D/g, '')
                     if (raw === '') { setOtrosCargos(''); return }
                     setOtrosCargos(String(Math.max(0, Math.trunc(Number(raw) || 0))))
                   }} />
               </div>
+              <div className="grid grid-cols-[1fr_140px] items-center gap-2">
+                <div className="text-sm text-[var(--muted)]">Descuento</div>
+                <div className="flex gap-1">
+                  <Input value={fmt(descuento)} type="text" inputMode="numeric" placeholder="0"
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/\D/g, '')
+                      if (raw === '') { setDescuento(''); return }
+                      setDescuento(String(Math.max(0, Math.trunc(Number(raw) || 0))))
+                    }} />
+                  <Select value={tipoDescuento} onChange={(e) => setTipoDescuento(e.target.value)} className="w-14 shrink-0">
+                    <option value="$">$</option>
+                    <option value="%">%</option>
+                  </Select>
+                </div>
+              </div>
+              {totals.descMonto > 0 ? (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-[var(--muted)]">Descuento {tipoDescuento === '%' ? `(${fmt(descuento)}%)` : ''}</span>
+                  <span className="text-red-400 font-medium">-{moneyCLP(totals.descMonto)}</span>
+                </div>
+              ) : null}
               <div className="text-sm text-[var(--muted)]">Notas</div>
               <Input value={note} placeholder="Opcional" maxLength={255} onChange={(e) => setNote(e.target.value)} />
               <div className="flex items-center justify-between text-base pt-1">
@@ -477,12 +509,27 @@ function ProductosView() {
             </div>
             <div className="space-y-1">
               <div className="text-xs text-zinc-400">Otros cobros</div>
-              <Input value={otrosCargos} type="number" min={0} step={1} placeholder="Ej: 2000"
+              <Input value={fmt(otrosCargos)} type="text" inputMode="numeric" placeholder="Ej: 2.000"
                 onChange={(e) => {
-                  const raw = e.target.value
+                  const raw = e.target.value.replace(/\D/g, '')
                   if (raw === '') { setOtrosCargos(''); return }
                   setOtrosCargos(String(Math.max(0, Math.trunc(Number(raw) || 0))))
                 }} />
+            </div>
+          </div>
+          <div className="grid grid-cols-[1fr_auto] items-center gap-2">
+            <div className="text-xs text-zinc-400">Descuento</div>
+            <div className="flex gap-1">
+              <Input value={fmt(descuento)} type="text" inputMode="numeric" className="w-20 text-right text-sm" placeholder="0"
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/\D/g, '')
+                  if (raw === '') { setDescuento(''); return }
+                  setDescuento(String(Math.max(0, Math.trunc(Number(raw) || 0))))
+                }} />
+              <Select value={tipoDescuento} onChange={(e) => setTipoDescuento(e.target.value)} className="w-14">
+                <option value="$">$</option>
+                <option value="%">%</option>
+              </Select>
             </div>
           </div>
 
@@ -515,6 +562,33 @@ function ProductosView() {
           <div className="rounded-2xl border border-[rgba(255,255,255,0.06)] bg-white/3 p-4">
             <div className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Total</div>
             <div className="pt-2 text-base font-semibold text-zinc-100">{moneyCLP(totals.total)}</div>
+            {metodoPago === 'EFECTIVO' ? (
+              <div className="pt-3 border-t border-[rgba(255,255,255,0.06)] mt-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-[var(--muted)]">Con cuanto paga?</span>
+                  <Input value={fmt(montoRecibido)} type="text" inputMode="numeric" className="w-24 text-right text-sm"
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/\D/g, '')
+                      if (raw === '') { setMontoRecibido(''); return }
+                      setMontoRecibido(String(Math.max(0, Math.trunc(Number(raw) || 0))))
+                    }} />
+                </div>
+                {montoRecibido !== '' && Number(montoRecibido) > 0 ? (() => {
+                  const r = Math.trunc(Number(montoRecibido))
+                  const ok = r >= totals.total
+                  return (
+                    <div className="pt-4">
+                      <div className={`text-xs uppercase tracking-[0.18em] ${ok ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {ok ? 'VUELTO' : 'FALTA'}
+                      </div>
+                      <div className={`pt-1 text-base font-semibold tabular-nums ${ok ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {ok ? moneyCLP(r - totals.total) : moneyCLP(totals.total - r)}
+                      </div>
+                    </div>
+                  )
+                })() : null}
+              </div>
+            ) : null}
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setConfirmOpen(false)}>Cancelar</Button>

@@ -61,7 +61,7 @@ router.get('/print-jobs/next', requireAgentKey, async (req, res) => {
 
     // tipo: 'sale'
     const [sales] = await pool.query(
-      `SELECT s.id, s.fecha, s.metodoPago, s.nota, s.otrosCargos, s.servicios, s.total,
+      `SELECT s.id, s.fecha, s.metodoPago, s.nota, s.otrosCargos, s.servicios, s.montoRecibido, s.descuento, s.tipoDescuento, s.descuentoMonto, s.total,
               u.nombre AS usuarioNombre
        FROM sales s
        JOIN users u ON u.id = s.usuarioId
@@ -95,6 +95,10 @@ router.get('/print-jobs/next', requireAgentKey, async (req, res) => {
         nota: sale.nota,
         otrosCargos: sale.otrosCargos,
         servicios: sale.servicios,
+        montoRecibido: sale.montoRecibido,
+        descuento: sale.descuento,
+        tipoDescuento: sale.tipoDescuento,
+        descuentoMonto: sale.descuentoMonto,
         total: sale.total,
         usuarioNombre: sale.usuarioNombre,
         origen: job.origen,

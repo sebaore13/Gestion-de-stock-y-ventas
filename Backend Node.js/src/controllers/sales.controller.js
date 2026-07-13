@@ -21,6 +21,10 @@ async function create(req, res) {
     return res.status(400).json({ ok: false, error: 'nota demasiado larga (max 255)' })
   }
 
+  const montoRecibido = Math.trunc(Number(req.body?.montoRecibido) || 0)
+  const descuento = Math.trunc(Number(req.body?.descuento) || 0)
+  const tipoDescuento = req.body?.tipoDescuento === '%' ? '%' : '$'
+
   const serviciosRaw = req.body?.servicios
   let servicios = []
   if (Array.isArray(serviciosRaw)) {
@@ -123,12 +127,19 @@ async function create(req, res) {
     }
 
     total += otrosCargos
+
+    const subTotal = total
+    const descuentoMonto = descuento > 0
+      ? (tipoDescuento === '%' ? Math.trunc(subTotal * descuento / 100) : Math.min(descuento, subTotal))
+      : 0
+    total = Math.max(0, subTotal - descuentoMonto)
+
     const now = new Date()
     const fechaStr = formatLocalDatetime(now)
 
     const [saleResult] = await conn.query(
-      'INSERT INTO sales (fecha, usuarioId, metodoPago, nota, otrosCargos, servicios, total) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [fechaStr, req.auth.userId, metodoPagoRaw, note || null, otrosCargos, JSON.stringify(servicios), total],
+      'INSERT INTO sales (fecha, usuarioId, metodoPago, nota, otrosCargos, servicios, montoRecibido, descuento, tipoDescuento, descuentoMonto, total) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [fechaStr, req.auth.userId, metodoPagoRaw, note || null, otrosCargos, JSON.stringify(servicios), montoRecibido || null, descuento, tipoDescuento, descuentoMonto, total],
     )
     const saleId = saleResult.insertId
 
@@ -222,7 +233,7 @@ async function list(req, res) {
 
     const [rows] = await pool.query(
       `SELECT s.id, s.fecha, s.usuarioId, u.nombre AS usuarioNombre, u.rol AS usuarioRol,
-               s.metodoPago, s.nota, s.otrosCargos, s.servicios, s.total
+               s.metodoPago, s.nota, s.otrosCargos, s.servicios, s.montoRecibido, s.descuento, s.tipoDescuento, s.descuentoMonto, s.total
        FROM sales s
        JOIN users u ON u.id = s.usuarioId
        ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
@@ -280,7 +291,7 @@ async function getById(req, res) {
   try {
     const [saleRows] = await pool.query(
       `SELECT s.id, s.fecha, s.usuarioId, u.nombre AS usuarioNombre, u.rol AS usuarioRol,
-               s.metodoPago, s.nota, s.otrosCargos, s.servicios, s.total
+               s.metodoPago, s.nota, s.otrosCargos, s.servicios, s.montoRecibido, s.descuento, s.tipoDescuento, s.descuentoMonto, s.total
        FROM sales s
        JOIN users u ON u.id = s.usuarioId
        WHERE s.id = ?
